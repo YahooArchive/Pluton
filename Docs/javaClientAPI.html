@@ -1,0 +1,277 @@
+<html>
+<head>
+<link rel="shortcut icon" href=images/pluto-symbol.jpg type="image/x-icon" />
+<title>
+The Pluton Framework: Java Client API
+</title>
+</head>
+
+<body>
+
+<center>
+<a href=index.html>
+<img height=100 src=images/pluto-charon.jpg ALT="[Pluto Charon Image]">
+</a>
+</center>
+
+<h2 align=center>The Pluton Framework: Java Client API</h2>
+
+<h3>Table of Contents</h3>
+
+<ol>
+<li><a href=#Introduction>Introduction</a>
+<li><a href=#threads>A note about thread-safety</a>
+<li><a href=#Sample>Sample Program</a>
+<li><a href=#import><code>import</code> requirements</a>
+<li><a href=#classpath><code>classpath</code> settings</a>
+<li><a href=#ClientRequest><code>com.yahoo.pluton.ClientRequest</code></a>
+<li><a href=#Client><code>com.yahoo.pluton.Client</code></a>
+</ol>
+
+<a name=Introduction>
+<h3>Introduction</h3>
+
+The Java Client API is a thin wrapper around a
+<a href=http://en.wikipedia.org/wiki/Java_Native_Interface>JNI</a>
+interface to the core C++ pluton library.
+
+<p>
+The Java API is semantically identical to its C++ counterparts; the
+main differences being syntactic variations that better match the Java
+programming model.
+<p>
+
+This document highlights the differences between the C++ API and the
+Java API. For a complete description of the semantics please refer to the
+C++ <a href=clientAPI.html>client</a> APIs.
+
+<a name=threads>
+<h3>A note about thread-safety</h3>
+
+The client library for Java is reentrant and thread-safe when used as instructed. In
+particular the initialization of the JNI library
+calls
+<a href=threading.html#setThreadHandlers><code>pluton::client::setThreadHandles()</code></a>
+to register <code>pthreads</code> as the thread system to use.
+
+<p>
+To ensure thread-safety, there are a small number of 
+<a href=threading.html#Rules>rules</a> that need to be observed by the
+Java program, but the simplest way to ensure compliance with those
+rules is simply to never share any pluton objects across or between
+threads.
+
+<a name=Sample>
+<h3>Sample Program</h3>
+
+This sample Java client demonstrates sending a
+request to the <code>system.echo.0.raw</code> service.
+
+<p>
+<table border=1 width="75%">
+<td>
+<pre>
+01:	import com.yahoo.pluton.Client;
+02:
+03:	class testClient {
+04:	    public static void main(String[] args) {
+05:		com.yahoo.pluton.Client c1 = new com.yahoo.pluton.Client("Java Client", 3000);
+06:		c1.initialize("");
+
+07:	        com.yahoo.pluton.ClientRequest r1 = new com.yahoo.pluton.ClientRequest();
+08:	        r1.setRequestData("This is some data to echo");
+09:	        com.yahoo.pluton.ClientRequest r2 = new com.yahoo.pluton.ClientRequest();
+10:	        r2.setRequestData("This is some more data to echo");
+
+11:	        c1.addRequest("system.echo.0.raw", r1);
+12:	        c1.addRequest("system.echo.0.raw", r2);
+13:	        c1.executeAndWaitAll();
+14:	        String resp1 = r1.getResponseData();
+15:		String resp2 = r2.getResponseData();
+16:		System.out.println("R1=" + resp1 + " and R2=" + resp2);
+17:	}
+</pre>
+</table>
+
+<p>
+Those familiar with the C++ API  will recognize the
+interfaces and programming model. Unique to Java is the <code>import</code>  at
+lines <code>01:</code>.
+
+<p>
+Line <code>05:</code> shows the construction of
+a <code>com.yahoo.pluton.Client</code> object which corresponds to the
+C++
+<a href=clientAPI.html#constructinitialize><code>pluton::client</code></a>
+and lines <code>07:</code> and <code>09:</code> show construction
+of
+<code>com.yahoo.pluton.ClientRequest</code> objects which correspond
+to
+the C++ <a href=clientAPI.html#preparing><code>pluton::clientRequest</code></a> object.
+
+
+<a name=import>
+<h3><code>import</code> requirements</h3>
+
+All Java client programs should identify their dependency with:
+
+<pre>
+import com.yahoo.pluton.Client;
+</pre>
+
+
+<a name=classpath>
+<h3><code>classpath</code> settings</h3>
+
+The Java pluton classes are bundled in a <code>jar</code> which is
+normally installed at <code>/usr/local/lib/jars/pluton.jar</code>.
+To compile your program, add the jar path to
+your <code>-classpath</code> option, ie:
+
+<pre>
+javac -classpath /usr/local/lib/jars/pluton.jar yourProgram.java
+</pre>
+
+<p>
+and similarly to run your class:
+
+<pre>
+java -classpath /usr/local/lib/jars/pluton.jar:. yourClass
+</pre>
+
+The <code>:.</code> at the end of the <code>classpath</code> parameter
+tells the <code>java</code> command knows where to search for your
+class file.
+
+<a name=ClientRequest>
+<h3>com.yahoo.pluton.ClientRequest</h3>
+<p>
+This table lists the available Java <a href=clientAPI.html#preparing><code>pluton::clientRequest</code></a>
+APIs and highlights any differences that exist between them and their C++ counterparts. In general:
+
+<ul>
+<li>where
+the C++ interface uses <code>std::string</code> the Java interface
+uses <code>String</code>
+<li>Error returns have been converted to
+exceptions to match the programming model expected by Java programmers
+<li>the return
+type is <code>void</code> unless indicated otherwise.
+</ul>
+
+<p>
+
+<table border=1>
+<tr valign=top><th align=left>Java Method
+<th align=left>Same as C++<th align=left>Comments
+<th align=left>Exceptions Thrown
+</tr>
+
+<tr valign=top><th align=left><a href=clientAPI.html#preparing>ClientRequest()</a><td>Yes<td>
+Constructor
+<td>OutOfMemoryError
+</tr>
+
+<tr valign=top><th align=left><a href=clientAPI.html#setAttribute>setAttribute(int)</a><td>Yes<td>
+The mappings between the Java attributes and their C++ counterparts are:<br><br>
+<table>
+<tr><td><strong>com.yahoo.pluton.ClientRequest.noWaitAttr</strong><td>pluton::noWaitAttr</tr>
+<tr><td><strong>com.yahoo.pluton.ClientRequest.noRemoteAttr</strong><td>pluton::noRemoteAttr</tr>
+<tr><td><strong>com.yahoo.pluton.ClientRequest.noRetryAttr</strong><td>pluton::noRetryAttr</tr>
+<tr><td><strong>com.yahoo.pluton.ClientRequest.keepAffinityAttr</strong><td>pluton::keepAffinityAttr</tr>
+<tr><td><strong>com.yahoo.pluton.ClientRequest.needAffinityAttr</strong><td>pluton::needAffinityAttr</tr>
+</table>
+</pre>
+<td>
+</tr>
+
+<tr valign=top><th align=left><a href=clientAPI.html#getAttribute>int getAttribute(int)</a><td>Yes<td><td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#clearAttribute>clearAttribute(int)</a><td>Yes<td><td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#setContext>setContext(String key, String value)</a><td>Yes<td>
+<td>IllegalArgumentException
+</tr>
+
+<tr valign=top><th align=left><a href=clientAPI.html#setRequestData>setRequestData(String)</a><td>Variant<td>
+String is converted to UTF-8 when transferred to the service
+<td></tr>
+
+<tr valign=top><th align=left><a href=clientAPI.html#setRequestData>setRequestDataBytes(byte[])</a><td>Variant<td>
+Byte array is transferred "as-is" to the service
+<td></tr>
+
+<tr valign=top><th align=left><a href=clientAPI.html#getResponseData>String getResponseData()</a><td>Variant<td>
+Response data is converted using the platform's default charset
+<td></tr>
+
+<tr valign=top><th align=left><a href=clientAPI.html#getResponseData>byte[] getResponseDataBytes()</a><td>Variant<td>
+Response data is transferred "as-is" into the byte array
+<td></tr>
+
+<tr valign=top><th align=left><a href=clientAPI.html#inProgress>boolean inProgress()</a><td>Yes<td><td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#hasFault>boolean hasFault()</a><td>Yes<td><td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#getFaultCode>int getFaultCode()</a><td>Yes<td><td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#getFaultText>String getFaultText()</a><td>Yes<td><td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#getServiceName>String getServiceName()</a><td>Yes<td><td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#getClientHandle>int getClientHandle()</a><td>Yes<td>
+Note that the handle is a 32 bit integer<td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#setClientHandle>int setClientHandle()</a><td>Yes<td>
+Note that the handle is a 32 bit integer<td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#reset>reset()</a><td>Yes<td><td></tr>
+
+</table>
+
+<a name=Client>
+<h3>com.yahoo.pluton.Client</h3>
+
+This table lists the available Java <a href=clientAPI.html#construction><code>pluton::client</code></a> APIs
+and highlights any differences that exist between them and their C++ counterparts.
+<p>
+
+<table border=1>
+<tr valign=top><th align=left>Java Method<th align=left>Same as C++<th align=left>Comments<th>Exceptions Thrown</tr>
+
+<tr valign=top><th align=left><a href=clientAPI.html#constructinitialize>Client()</a><td>Yes<td><td>OutOfMemoryError</tr>
+<tr valign=top><th nowrap align=left><a href=clientAPI.html#constructinitialize>Client(String name, int timeoutMS)</a><td>Yes<td><td>OutOfMemoryError</tr>
+<tr valign=top><th align=left><a href=clientAPI.html#getAPIVersion>String getAPIVersion()</a><td>Yes<td><td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#initialize>int initialize()</a><td>Yes<td><td>IllegalArgumentException</tr>
+<tr valign=top><th align=left><a href=clientAPI.html#clientHasFault>boolean hasFault()</a><td>Yes<td><td></tr>
+
+<tr valign=top><th align=left><a href=fault.html#getFaultCode>int getFaultCode()</a><td>No<td>
+Returns the fault code from the
+associated <a href=fault.html><code>pluton::fault</code></a> object
+associated with the Java <code>com.yahoo.pluton.Client</code> object<td></tr>
+
+<tr valign=top><th nowrap align=left><a href=clientAPI.html#clientGetFault>String<br>getFaultMessage(String prefix, boolean longFormat)</a><td>No
+<td>Returns the fault message from the <a href=fault.html><code>pluton::fault</code></a> object
+associated with this Client object<td></tr>
+
+<tr valign=top><th align=left><a href=clientAPI.html#setDebug>setDebug()</a><td>Yes<td><td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#setTimeoutMilliSeconds>setTimeoutMilliSeconds(int)</a><td>Yes<td><td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#getTimeoutMilliSeconds>int getTimeoutMilliSeconds()</a><td>Yes<td><td></tr>
+<tr valign=top><th nowrap align=left><a href=clientAPI.html#addRequest>int<br>addRequest(String, com.yahoo.pluton.ClientRequest)</a><td>Yes<td><td>IllegalArgumentException</tr>
+
+<tr valign=top><th align=left><a href=clientAPI.html#executeAndWaitSent>int executeAndWaitSent()</a><td>Yes<td><td>Error</tr>
+<tr valign=top><th align=left><a href=clientAPI.html#executeAndWaitAll>int executeAndWaitAll()</a><td>Yes<td><td>Error</tr>
+<tr valign=top><th align=left><a href=clientAPI.html#executeAndWaitAny>int executeAndWaitAny()</a><td>No<td>Return
+value is clientHandle of completed request or zero if no request
+      completed.<br>Note that the semantics of this call are
+      experimental and may change to more accurately reflect the C++ interface.
+<td>Error</tr>
+
+<tr valign=top><th align=left><a href=clientAPI.html#executeAndWaitOne>int executeAndWaitOne()</a><td>Yes<td>Supplied
+parameter is a 
+<code>PlutonClientRequest</code> object<td>Error</tr>
+
+<tr valign=top><th align=left><a href=clientAPI.html#reset>reset()</a><td>Yes<td><td></tr>
+
+
+</table>
+
+<p>
+<hr>
+<font size=-1>
+$Id: javaClientAPI.html 260483 2009-10-16 18:47:56Z markd $
+&copy; Copyright Yahoo! Inc, 2008, 2009
+</font>
+</body>
+</html>

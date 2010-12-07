@@ -1,0 +1,81 @@
+<html>
+<head>
+<link rel="shortcut icon" href=images/pluto-symbol.jpg type="image/x-icon" />
+<title>
+The Pluton Framework: Service Keys
+</title>
+</head>
+
+<body>
+
+<center>
+<a href=index.html>
+<img height=100 src=images/pluto-charon.jpg ALT="[Pluto Charon Image]">
+</a>
+</center>
+
+<h2 align=center>The Pluton Framework: Service Keys</h2>
+
+Service Keys are the mechanism by which clients address services,
+configuration files are identified and various temporary file system
+objects are created (eg, Rendezvous Sockets).
+
+Service Keys consists of dot separated set of components, i.e.:
+
+<pre>
+	Application.Function.Version.Serialization
+</pre>
+
+Historically the naming is RPC-oriented, but really,
+<code>Application</code> and <code>Function</code> can just as easily
+be <code>Action</code> and <code>Resource</code> - especially if you
+take advantage of the lookup wildcard feature. In that case, a Service
+Key could be viewed as:
+
+<pre>
+        Action.Resource.Version.Serialization
+</pre>
+
+<p>
+The rules which define a valid Service Key are:
+
+<p>
+<ul>
+
+<li>The Service Key must have exactly four components separated by a '.'
+
+<p><li>Each component must be less than or equal to 32 characters in
+length - mostly to ensure the complete name plus extensions can be created in
+a Unix file system.
+
+<p><li> The first component, called <code>Application</code> must have a
+length which is greater than zero and less than or equal to 32
+characters.
+
+<p><li>The second component, called <code>Function</code> must have a
+length which is less than or equal to 32
+characters. <code>Function</code> can be zero length for a
+configuration file to indicate a wild-card service, but must be
+greater then zero when used by a client to identify a service.
+
+<p><li>The third component, called <code>Version</code> must be a
+positive decimal integer with a length in the range of 1 to 6
+characters. To avoid ambiguity, leading zeroes are not allow for
+versions greater than zero as this could be mis-interpreted by some to
+mean octal.
+
+<p><li>The forth and final component, called
+<code>Serialization</code>, must exactly match one of the pre-defined <a
+href=serialization.html>serialization types</a>.
+
+
+</ul>
+
+<p>
+<hr>
+<font size=-1>
+$Id: serviceKey.html 260483 2009-10-16 18:47:56Z markd $
+&copy; Copyright Yahoo! Inc, 2007, 2008
+</font>
+</body>
+</html>

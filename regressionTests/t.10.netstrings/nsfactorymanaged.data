@@ -1,0 +1,37 @@
+# ID Prealloc readdata		maxToRead		NSType NSValue
+# 1a Simple two-part slurp
+
+1a 20 2Aa 	3			. .
+1b 0 a,	 	2			A aa
+
+# 1b multipart slurp of single chars
+
+2a 20 3 	3 			. .
+2b 0 B 		5 			. .
+2c 0 b 		4 			. .
+2d 0 b 		3 			. .
+2e 0 b 		2 			. .
+2e 0 , 		1 			B bbb
+
+# 1c multipart slurp of multiple characters
+
+3a 20 3 	3 			. .
+3b 0 Cccc, 	5 			C ccc
+
+# 1d Single slurp
+
+4a 20 4Ddddd,	3			D dddd
+
+# 2 Grow the Managed factory
+
+5a 20 80affffffffff 3 . .
+5b 0 fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffa, 3 a fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffa
+
+6a 0 100bgggggggggg 3 . .
+6b 0 gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggh, 3 b gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggh
+
+# 7 Force a relocation internal to netStringFactory
+
+7a 10 3aAAA,11B 3 a AAA
+7b 0 a 1 . .
+7c 0 bbbbbbbbbc, 1 B abbbbbbbbbc

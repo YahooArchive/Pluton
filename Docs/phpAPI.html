@@ -1,0 +1,263 @@
+<html>
+<head>
+<link rel="shortcut icon" href=images/pluto-symbol.jpg type="image/x-icon" />
+<title>
+The Pluton Framework: PHP API
+</title>
+</head>
+
+<body>
+
+<center>
+<a href=index.html>
+<img height=100 src=images/pluto-charon.jpg ALT="[Pluto Charon Image]">
+</a>
+</center>
+
+<h2 align=center>The Pluton Framework: PHP API</h2>
+
+<h3>Introduction</h3>
+
+The PHP API is a <a href=http://www.zend.com>ZEND</a> extension
+around the C++ <a href=clientAPI.html>client</a> and
+<a href=serviceAPI.html>service</a> APIs.
+
+The PHP API is semantically very similar to its C++ counterparts; the main differences being
+the parameters passed to the APIs.
+<p>
+
+This document highlights the differences between the C++ API and the
+PHP API. For a more complete description of each of the APIs please
+refer the C++ <a href=clientAPI.html>client</a>
+and <a href=serviceAPI.html>service</a> APIs.
+<h3>Sample Programs</h3>
+
+This sample php client demonstrates sending a
+request to the <code>system.echo.0.raw</code> service.
+
+<p>
+<table border=1 width="75%">
+<td>
+<pre>
+
+&lt;?php
+
+define('SERVICE_KEY', 'test.parrot.0.raw');
+
+$pc = new PlutonClient('echoClient');
+$pc->initialize();
+
+$echoReq = new PlutonClientRequest();
+
+/* Set the request data */
+$echoReq->setRequestData("Hello World!");
+
+/* Add the request to the queue */
+if(!($pc->addRequest(SERVICE_KEY, $echoReq))) {
+print_r("[addRequest Error] " . $pc->getFault() . "\n");
+exit(-1);
+}
+
+/* Execute the request */
+$pc->executeAndWaitAll();
+if ($pc->hasFault()) {
+ print_r("[Fault] " . $pc->getFault() . "\n");
+ exit(-1);
+}
+
+$response = "";
+
+/* Extract the response data */
+$fault = $echoReq->getResponseData($response);
+if ($fault == 0) {
+print_r("Response: " . $response . "\n");
+}
+else {
+print_r("[Fault] " . $echoReq->getFaultText() . "\n");
+}
+
+?&gt;
+</pre>
+</table>
+
+<p>
+Its corresponding service looks like:
+<p>
+<table border=1 width="75%">
+<td>
+<pre>
+
+&lt;?php
+
+// Create and initialize the Pluton service.
+$service = new PlutonService('test.parrot.0.raw');
+$service->initialize();
+
+// Invoke the call loop.
+while($service->getRequest()) {
+	// Call received, deserialize the request.
+	$request = trim($service->getRequestData());
+
+	if($request === 'fault') {
+		$service->sendFault(11, 'You asked for a fault...so here you go');
+	}
+	else {
+		if(!$service->sendResponse($request)) {
+			$service->sendFault(11, 'sendResponse() failed');
+		}
+	}
+}
+
+// Call loop completed, see if the loop exited early due to a fault.
+if($service->hasFault()) {
+	// Call loop exited because of a fault.
+	error_log('Service had a fault');
+}
+
+// Terminate the service.
+$service->terminate();
+
+// Exit code zero indicating no major failure.
+exit(0);
+
+?&gt;
+
+</pre>
+</table>
+
+
+<h3>ClientRequest</h3>
+<p>
+<b>Class:</b> PlutonClientRequest
+<p>
+The following table lists the PHP Client and Service APIs available and the differences that
+exists between them and the C++ counterparts.
+<p>
+
+<table border=1>
+<tr valign=top><th align=left>PHP ClientRequest Methods<th align=left>Same as C++<th align=left>Comments</tr>
+
+
+<tr valign=top><th align=left><a href=clientAPI.html#clearAttribute>clearAttribute()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#getAttribute>getAttribute()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#getClientHandle>getClientHandle()</a><td>Yes<td>Note that the client handle is a 32 bit integer</tr>
+<tr valign=top><th align=left><a href=clientAPI.html#getFaultCode>getFaultCode()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#getFaultText>getFaultText()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#getResponseData>getResponseData()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#getServiceName>getServiceName()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#hasFault>hasFault()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#inProgress>inProgress()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#requestReset>reset()</a><td>Yes<td></tr>
+
+<tr valign=top><th align=left><a href=clientAPI.html#setAttribute>setAttribute()</a><td>Yes<td>
+<pre>
+The attribute names differ from their C++ counterparts:<br/>
+PLUTON_ALL_ATTR --> pluton::allAttrs
+PLUTON_KEEPAFFINITY_ATTR --> pluton::keepAffinityAttr
+PLUTON_NEEDAFFINITY_ATTR --> pluton::needAffinityAttr
+PLUTON_NOREMOTE_ATTR --> pluton::noRemoteAttr
+PLUTON_NORETRY_ATTR --> pluton::noRetryAttr
+PLUTON_NOWAIT_ATTR --> pluton::noWaitAttr
+</pre>
+</tr>
+
+<tr valign=top><th align=left><a href=clientAPI.html#setClientHandle>setClientHandle()</a><td>Yes<td>Note that the client handle is a 32 bit integer</tr>
+<tr valign=top><th align=left><a href=clientAPI.html#setContext>setContext()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#setRequestData>setRequestData()</a><td>Yes<td></tr>
+
+</table>
+
+<h3>Client Methods</h3>
+
+<b>Class:</b> PlutonClient
+<p>
+The following table lists the PlutonClient methods available as part of the PHP
+APIs.
+<p>
+
+<table border=1>
+<tr valign=top><th align=left>PHP API<th align=left>Same as C++<th align=left>Comments</tr>
+
+<tr valign=top><th align=left><a href=clientAPI.html#addRequest>addRequest()</a><td>Yes<td>Supplied parameter is a reference to a<code>PlutonClientRequest</code></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#clientGetFault>getFault()</a><td>No<td>Returns the long fault message (without prefix) from the <a href=fault.html><code>pluton::fault</code></a> object associated with this client object</tr>
+<tr valign=top><th align=left><a href=fault.html#getFaultCode>getFaultCode()</a><td>New<td>Returns the fault code from the associated <a href=fault.html><code>pluton::fault</code></a> object associated with the PHP <code>PlutonClient</code> object</tr>
+<tr valign=top><th align=left><a href=fault.html#getMessage>getFaultMessage()</a><td>New<td>Returns the fault message from the associated <a href=fault.html><code>pluton::fault</code></a> object associated with the PHP <code>PlutonClient</code> object. The parameters to this method are the same as <a href=fault.html#getMessage><code>pluton::fault::getMessage()</code></a></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#clientHasFault>hasFault()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#executeAndWaitAll>executeAndWaitAll()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#executeAndWaitAny>executeAndWaitAny()</a><td>No<td>Return value is clientHandle of completed request or zero if no request completed.<br>Note that the semantics of this call are experimental and may change to more accurately reflect the C++ interface.</tr>
+<tr valign=top><th align=left><a href=clientAPI.html#executeAndWaitOne>executeAndWaitOne()</a><td>Yes<td>Supplied parameter is a <code>PlutonClientRequest</code> object</tr>
+<tr valign=top><th align=left><a href=clientAPI.html#executeAndWaitSent>executeAndWaitSent()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#getAPIVersion>getAPIVersion()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#getTimeoutMilliSeconds>getTimeoutMilliSeconds()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#initialize>initialize()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#setDebug>setDebug()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#setTimeoutMilliSeconds>setTimeoutMilliSeconds()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#clientReset>reset()</a><td>Yes<td></tr>
+
+</table>
+
+<h3>Service Methods</h3>
+<b>Class:</b> PlutonService
+<p>
+<p>
+
+<table border=1>
+<tr valign=top><th align=left>PHP APIs<th align=left>Same as C++<th align=left>Comments</tr>
+
+<tr valign=top><th align=left><a href=serviceAPI.html#getAPIVersion>getAPIVersion()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=serviceAPI.html#getClientName>getClientName()</a><td>No<td>No parameter is passed to this routine</tr>
+
+<tr valign=top><th align=left><a href=serviceAPI.html#getContext>getContext()</a><td>No<td>No second parameter is passed to this routine - Context data is the return value, eg:
+<br>
+<pre>
+$cd = $r->getContextData("echo.timeoutMS");
+print_r "Context data is $cd\n";
+</pre>
+</tr>
+
+<tr valign=top><th align=left><a href=serviceAPI.html#serviceGetFault>getFault()</a><td>No<td>
+Returns the long fault message (without prefix) from
+the <a href=fault.html><code>pluton::fault</code></a> object associated
+with this service object</tr>
+
+<tr valign=top><th align=left><a href=fault.html#getFaultCode>getFaultCode()</a><td>New<td>
+Returns the fault code from the
+associated <a href=fault.html><code>pluton::fault</code></a> object
+associated with this service object</tr>
+
+<tr valign=top><th align=left><a href=fault.html#getMessage>getFaultMessage()</a><td>New<td>
+Returns the fault message from the
+associated <a href=fault.html><code>pluton::fault</code></a> object
+associated with this service object. The
+parameters to this method are the same as <a href=fault.html#getMessage><code>pluton::fault::getMessage()</code></a></tr>
+</tr>
+
+<tr valign=top><th align=left><a href=serviceAPI.html#getRequest>getRequest()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=serviceAPI.html#getRequestData>getRequestData()</a><td>No<td>No parameter is passed to this routine - Request data is the return value</tr>
+<tr valign=top><th align=left><a href=serviceAPI.html#getSerializationType>getSerializationType()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=serviceAPI.html#getServiceApplication>getServiceApplication()</a><td>No<td>No parameter is passed to this routine</tr>
+<tr valign=top><th align=left><a href=serviceAPI.html#getServiceFunction>getServiceFunction()</a><td>No<td>No parameter is passed to this routine</tr>
+<tr valign=top><th align=left><a href=serviceAPI.html#getServiceKey>getServiceKey()</a><td>No<td>No parameter is passed to this routine</tr>
+<tr valign=top><th align=left><a href=serviceAPI.html#getServiceVersion>getServiceVersion()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=serviceAPI.html#hasFault>hasFault()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=serviceAPI.html#initialize>initialize()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=serviceAPI.html#sendFault>sendFault()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=serviceAPI.html#sendResponse>sendResponse()</a><td>Yes<td>Only the single parameter version available, eg:<br>
+<pre>
+$s = new PlutonService();
+$s->sendResponse("Here is some data");
+<pre>
+</tr>
+
+<tr valign=top><th align=left><a href=serviceAPI.html#terminate>terminate()</a><td>Yes<td></tr>
+
+</table>
+
+<p>
+<hr>
+<font size=-1>
+$Id: phpAPI.html 263414 2009-12-01 00:52:44Z markd $
+&copy; Copyright Yahoo! Inc, 2008, 2009
+</font>
+</body>
+</html>

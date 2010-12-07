@@ -1,0 +1,6 @@
+# unknown parameter maximum-occupancy
+
+exec /bin/echo
+maximum-processes 40
+maximum-occupancy 20
+

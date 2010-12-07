@@ -1,0 +1,15 @@
+#! /bin/sh
+
+options=$*
+[ -z "$rgMANAGEROut" ] && exit 8
+[ -z "$rgMANAGERErr" ] && exit 9
+
+killall -9 plutonManager 2>/dev/null 1>&2
+./start_manager_wrapper $options >$rgMANAGEROut 2>$rgMANAGERErr &
+
+for ticktock in 1 2 3 4 5 6 7 8 9 10
+do
+  grep -q 'Manager ready:' $rgMANAGEROut && exit 0
+  grep -q 'FATAL:' $rgMANAGEROut && exit 1
+  sleep 1
+done

@@ -1,0 +1,22 @@
+# 1a Simple two-part slurp
+
+1a1 20 2Aa	 	0 0 20		. .
+1a2 0 a,	 	0 3 17			A aa
+
+# 1b multipart slurp of single chars
+
+1b1 20 3 		0 0 20 		. .
+1b2 0 B 		0 1 19 			. .
+1b3 0 b 		0 2 18 			. .
+1b4 0 b 		0 3 17 			. .
+1b5 0 b 		0 4 16 			. .
+1b6 0 , 		0 5 15 			B bbb
+
+# 1c multipart slurp of multiple characters
+
+1c1 20 3 		0 0 20 		. .
+1c2 0 Cccc, 		0 1 19 		C ccc
+
+# 1d Single slurp
+
+1d1 20 4Ddddd,		0 0 20		D dddd

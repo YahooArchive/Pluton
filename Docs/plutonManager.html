@@ -1,0 +1,463 @@
+<html>
+<head>
+<link rel="shortcut icon" href=images/pluto-symbol.jpg type="image/x-icon" />
+<title>
+The Pluton Framework: plutonManager
+</title>
+</head>
+
+<body>
+
+<center>
+<a href=index.html>
+<img height=100 src=images/pluto-charon.jpg ALT="[Pluto Charon Image]">
+</a>
+</center>
+
+<h2 align=center>The Pluton Framework: plutonManager</h2>
+
+The plutonManager, in conjunction with the <a
+href=clientAPI.html>Client API</a> and <a href=serviceAPI.html>Service
+API</a>, constitute the core of the Pluton Framework.
+
+<p>
+The plutonManager is responsible for creating all the run-time
+components of each configured service. This includes the shared memory
+Lookup Table, the per-service Rendezvous Socket, the per-service
+service shared memory and the service processes to accept requests.
+
+<p>The <code>plutonManager</code> is
+normally run as a <a href=cr.yp.to/daemontools.html>daemontools supervised</a>
+process.
+
+<h4>Contents</h4>
+
+<ul>
+<li><a href=#Usage>Usage</a>
+<li><a href=#ConfigurationScanning>Configuration Scanning</a>
+<li><a href=#ServiceCreation>Service Creation</a>
+<li><a href=#ServiceDestruction>Service Destruction</a>
+<li><a href=#Debug>Debug Options</a>
+<li><a href=#Logging>Logging Options</a>
+<li><a href=#Signals>Signals</a>
+<li><a href=#Calibration>Service Calibration</a>
+	<ul>
+	<li><a href=#CalibrationStartUp>Start Up Phase uses <code>minimum-processes</code></a>
+	<li><a href=#CalibrationActive>Active Phase uses <code>occupancy-percent</code></a>
+		<ul>
+		<li><a href=#CalibrationBursts><em>Bursty</em> Requests confuse Occupancy</a>
+		<li><a href=#CalibrationDeveloper>Developer testing can appear <em>bursty</em></a>
+		</ul>
+	<li><a href=#CalibrationIdle>Idle Phase uses <code>idle-timeout</code></a>
+	</ul>
+<li><a href=#CommandPort>Command Port</a>
+	<ul>
+	<li><a href=#CommandDebugon>debugon - turn on a debug option</a>
+	<li><a href=#CommandDebugoff>debugoff - turn off a debug option</a>
+	<li><a href=#CommandLogon>logon - turn on a logging option</a>
+	<li><a href=#CommandLogoff>logoff - turn off a logging option</a>
+	<li><a href=#CommandService>service - display service status</a>
+	<li><a href=#CommandProcess>process - display process status</a>
+	<li><a href=#CommandStats>stats - display general manager statistics</a>
+</ul>
+
+<h4><a name=Usage>Usage</h4>
+
+<pre>
+Usage: plutonManager [-h]
+                     [-C configurationDirectory] [-L lookupMap]
+                     [-R rendezvousDirectory]
+                     [-c commandInterface:commandPort]
+                     [-d debugOptions] [-l loggingOptions]
+                     [-s statisticsInterval] [-z st_stack_size]
+
+The plutonManager manages service processes based on configuration files.
+
+Where:
+
+ -h   Print this usage message on STDOUT and exit(0)
+
+ -C   Directory containing service configuration files (default: '.')
+ -L   Name of shared memory lookup file (default: './lookup.map')
+ -R   Directory where sockets and shared memory files are created (default: '.')
+
+ -c   Defines the interface and port for the command line interface.
+
+ -d   Debug options: all, child, manager, service, process, thread,
+       stio, config, reportingChannel and calibrate (default: none)
+ -l   Logging option: all, process, service;
+       processStart, processLog, processExit and processUsage;
+       serviceConfig, serviceStart and serviceExit;
+       and calibrate (default: none)
+
+ -s   Seconds between periodic statistics log entries (default: 600)
+ -z   Size of the stack for each state-thread (default: 0)
+</pre>
+
+<p>
+The simplest way to invoke the <code>plutonManager</code> is with no
+options at all, in which case everything is contained and created in
+the current working directory. This is a convenient way to test
+without impacting anything (or anyone) else.
+
+<h4><a name=ConfigurationScanning>Configuration Scanning</h4>
+
+At startup or on receiving a SIGHUP, the <code>plutonManager</code>
+scans the <code>configurationDirectory</code> for files matching the
+<a href=serviceKey.html>Service Key</a> naming convention. Filenames
+in the configuration directory which do not match the Service Key
+convention are ignored.
+
+<p>
+Files that match the Service Key naming convention are assumed to be
+<a href=configuration.html>configuration files</a> and are parsed
+accordingly. If the configuration parse fails, the file is ignored
+until the next scan.
+
+<p>
+If the scan finds a valid configuration file which is new, or has been
+modified since the last scan, a new service is started and any
+existing service is replaced.
+
+<p>Services are replaced transparently by the
+<code>plutonManager</code> as they are expected to be created and
+upgraded many times during the life-time of the
+<code>plutonManager</code>. In fact, the ultimate goal is to have the
+<code>plutonManager</code> started just once at system boot and remain
+active until the system is shut down.
+
+<p>Transparency is primarily achieved by creating a new Rendezvous Socket
+and using the <code>rename()</code> system call to atomically replace the
+existing socket. Processes associated with the old Rendezvous Socket are
+then notified to complete requests on the old socket and then exit. A
+connecting client will either get the old service or the new service - the
+atomicity guarantee of <code>rename()</code> assures that a Rendezvous
+Socket will always exist.
+
+
+<h4><a name=ServiceCreation>Service Creation</h4>
+
+<p>Each configuration file defines a unique service named the same as
+the filename of the configuration file. For each of these services, the
+<code>plutonManager</code> creates a Rendezvous Socket and a shared memory
+mapped file in the <code>rendezvousDirectory</code> with the ".socket"
+extension, and ".mmap" extension respectively, eg:
+
+<pre>
+	system.echo.0.raw.socket
+	system.echo.0.raw.mmap
+</pre>
+
+The path of these files is associated with the ServiceKey in the
+LookupMap so the clientAPI can <i>discover</i> them.
+
+<p>Depending on the service configuration, the
+<code>plutonManager</code> will either listen on the Rendezvous Socket
+for a connect() or start instances of the service process which will
+listen for a connect(). In the former case, as soon as a connect() is
+detected, at least one service process is created to accept the
+connection. This is an optimization that avoids starting a service at
+all. It may be appropriate for services that are rarely, if ever,
+used.
+
+<p>Once at least one service instance is started, the
+<code>plutonManager</code> applies the usual scheduling algorithms in
+conjunction with the configuration to manage the number of instances.
+
+
+<h4><a name=ServiceDestruction>Service Destruction</h4>
+
+If a service is to be destroyed, either because the
+<code>plutonManager</code> is shutting down or because the
+configuration file has been removed, essentially the reverse of the
+creation process occurs; the Rendezvous Socket and shared memory
+mapped files are removed and the service processes are notified to
+exit.
+
+<h4><a name=Debug>Debug Options</h4>
+
+The debug options are normally only of use to the developer of the
+<code>plutonManager</code>. These options generate verbose and obscure
+output which changes with each version of the
+<code>plutonManager</code>. You should not use these unless instructed
+to for diagnostic purposes.
+
+<p>All debugging output is written to STDERR.
+
+<p>
+<table border=1>
+
+<tr><th>Option<th>Description</tr>
+
+<tr valign=top><td>child<td>Details on forking services</tr>
+<tr valign=top><td>manager<td>Manager trace</tr>
+<tr valign=top><td>service<td>Service trace</tr>
+<tr valign=top><td>process<td>Process trace</tr>
+<tr valign=top><td>thread<td>State Thread trace</tr>
+<tr valign=top><td>stio<td>State Thread I/O</tr>
+<tr valign=top><td>config<td>Configuration loading and parsing</tr>
+<tr valign=top><td>reportingChannel<td>Traffic log of inbound reports</tr>
+<tr valign=top><td>calibrate<td>Diagnostics on service calibration</tr>
+
+</table>
+
+<h4><a name=Logging>Logging Options</h4>
+
+Compared to debug options, the logging options are intended to be
+understood by everyone and some options will normally be set in a
+production environment. Logging output is purposely minimalist in
+nature so that it can be safely written to log files with little risk
+of overloading I/O or storage capacity.
+
+<p>Each logging option is described in the following table. There is a
+specific <a href=logs.html>logs</a> page explaining in detail the
+meaning of each type of log output.
+
+<p>
+<table border=1>
+
+<tr><th>Option<th>Description</tr>
+
+<tr valign=top><td>processStart<td>Writes a log entry each time a process is started</tr>
+
+<tr valign=top><td>processLog<td>Writes output written by the process to STDERR -
+this is the mechanism by which a service instance can add log entries
+to the general log output. <br>A service should be parsimonious in its
+use of this facility as it could otherwise generate a lot of logging
+output.</tr>
+
+<tr valign=top><td>processExit<td>Writes a log entry each time a process exits</tr>
+
+<tr valign=top><td>processUsage<td>Writes rusage() and performance data when a
+process exits.<br>This data is designed for performance and trend
+analysis of a service.</tr>
+
+<tr valign=top><td>serviceConfig<td>Writes log entries during Configuration scans
+detailing changes in service configurations</tr>
+
+<tr valign=top><td>serviceStart<td>Writes a log entry when a new service is
+started due to the Configuration scan</tr>
+
+<tr valign=top><td>serviceExit<td>Writes a log entry when a service exits due to
+a Configuration scan</tr>
+
+<tr valign=top><td>calibrate<td>Writes a log entry containing various
+occupancy and usage statistics that trigger an adjustment to the number
+of processes.
+
+<tr valign=top><td>process<td>Turns on all process* logging options</tr>
+
+<tr valign=top><td>service<td>Turns on all service* logging options</tr>
+
+<tr valign=top><td>all<td>Turns on all logging options</tr>
+
+</table>
+
+<p>All logging output is written to STDOUT.
+
+
+<h3><a name=Signals>Signals</h3>
+
+The <code>plutonManager</code> catches a variety of signals to manage
+services and to allow external control.
+
+In a production environment, <code>plutonManager</code> is normally
+run as a <a
+href=http://cr.yp.to/daemontools/supervise.html>supervised</a> process
+which means you should use the <a
+href=http://cr.yp.to/daemontools/svc.html>svc</a> command rather than
+send signals directly. The following table shows which signals are
+used for what and which <code>svc</code> option, if any, should be
+used:
+
+
+<p>
+<table border=1>
+<tr><th>Signal<th>svc option<th>Purpose</tr>
+
+<tr valign=top><td><b>SIGTERM</b><td align=center>-t<td>Initiates a shutdown. If
+supervised, the service will restart.</tr>
+
+<tr valign=top><td><b>SIGINT</b><td align=center>-i<td>Forces a
+    Configuration Directory scan and a reload of all discovered services</tr>
+
+<tr valign=top><td><b>SIGUSR1</b><td align=center>N/A<td>Currently initiates a shutdown, but may be
+used for something different in the future</tr>
+
+<tr valign=top><td><b>SIGUSR2</b><td align=center>N/A<td>Currently initiates a shutdown, but may be
+used for something different in the future</tr>
+
+<tr valign=top><td><b>SIGCHLD</b><td align=center>N/A<td>Used to detect service exits</tr>
+
+<tr valign=top><td><b>SIGPIPE</b><td align=center>N/A<td>Disables EPIPE errno returns</tr>
+
+<tr valign=top><td><b>SIGHUP</b><td align=center>-h<td>Causes a Configuration Directory scan for
+changed services</tr>
+
+</table>
+
+
+<h3><a name=Calibration>Service Calibration</h3>
+
+A core function of the plutonManager is to calibrate - that is to say, dynamically
+adjust - the number of process running at any time. A different
+calibration algorithm is used depending on which phase a service is
+in. The three phases are <em>Start Up</em>, <em>Active</em> and
+<em>Idle</em>.
+
+<h4><a name=CalibrationStartUp>Start Up Phase</h4>
+
+When a service is first started due to configuration discovery, the
+plutonManager will either listen on the Rendezvous Socket itself, or
+start up the minimum configured services. The parameters
+
+<a href=configuration.html#minimum-processes>minimum-processes</code></a>
+and
+<a href=configuration.html#prestart-spares>prestart-spares</code></a>
+control this behavior.
+
+Once the minimum number of processes have been started, the
+<code>plutonManager</code> will maintain at least this many processes
+so long as the service is active.
+
+<h4><a name=CalibrationActive>Active Phase</h4>
+
+Each service instance provides activity information to the
+plutonManager, both via a shared memory segment and via status reports
+written to a reporting socket. The <code>plutonManager</code> uses
+this information primarily to calculate service occupancy. Occupancy is
+simply the amount of time a service is <em>active</em> versus the
+amount of time it is idle.
+
+<p>The definition of <em>active</em> is the wall-clock time between the
+<code>service::getRequest()</code> call and the
+<code>service::sendResponse()</code>. All other time consumed by the
+service instance is considered
+idle time.
+
+<p>
+Represented as a pecentage, the calculated occupancy is compared to
+the
+
+<a href=configuration.html#occupancy-percent>occupancy-percent</code></a>
+
+configuration value to determine whether a new service instance should
+be started or, alternatively whether there are too many instances and
+one should be stopped.
+
+<p>
+
+To stop a service from <em>flapping</em> - that is to say, continuously
+stopping and starting because occupancy is oscillating around the
+configured value - the plutonManager uses a simple hysteresis
+to ensure that the occupancy change is a trend over a sample period of
+around 10-15 seconds (the exact period is influenced by the arrival
+rate of service reports).
+
+<h5><a name=CalibrationBursts><em>"Bursty"</em> Requests confuse Occupancy</h5>
+
+The occupancy algorithm assumes a relatively smooth distribution of
+requests over time. On an active system with many requests per second,
+this is generally true, however the activity profile may be very
+<em>bursty</em> due to the nature of the application. In these cases,
+it is likely the occupancy algorithm will tend not to start sufficient
+instances to provide sufficient concurrency.
+
+<p>
+An example where this situation can arise is, say, when a large number of
+service requests arrive at the same time, persist for a second  or so, then
+do not arrive again for another 15-20 seconds. From an occupancy
+perspective, the use of such a service is low, but from a concurrency
+perspective, there may be insufficient services.
+<p>
+The best strategy for dealing with <em>bursty</em> requests that
+require better response times is to ensure that there are always a
+minimum number of services available with the
+
+<a href=configuration.html#minimum-services>minimum-services</code></a>
+
+configuration parameter.
+
+<h5><a name=CalibrationDeveloper>Developer testing can appear <em>bursty</em></h5>
+
+A common case where the occupancy algorithm may <em>appear</em> not to
+work is when a developer is testing a service - perhaps with
+small bursts of parallel requests.
+
+<p>
+In this scenario, a developer typically goes through an edit, compile,
+test cycle that effectively mimics a <em>bursty</em> request
+profile. The result being that parallel requests submissions by a
+client are not run in parallel simply because the occupancy over time
+is too low to trigger the creation of sufficient service instances.
+
+<p>This <em>apparent</em> failure of occupancy should not be confused
+with how the algorithm will work on a busy system with many
+requests. The cure for this is the same as for other <em>bursty</em>
+traffic profiles; use the
+<a
+href=configuration.html#minimum-services>minimum-services</code></a>
+
+configuration parameter to ensure you have enough concurrent service
+instances to ensure parallel execution.
+
+<h4><a name=CalibrationIdle>Idle Phase</h4>
+
+A service transitions to the <em>Idle</em> Phase when the
+<code>plutonManger</code> detects a completely inactive service. The
+definition of an inactive service is one which does not write any
+performance reports for at least <code>idle-timeout</code> seconds.
+
+<p>Once a service is transitioned to the <em>Idle</em> Phase, the
+<code>plutonManager</code> will reduce the number of available
+processes down to the
+<code>minimum-processes</code> value.
+
+<h3><a name=CommandPort>Command Port</h3>
+
+If the <code>-c</code> option is present, the
+<code>plutonManager</code> accepts connections on this address which
+can be used to send various status and change commands to the running
+instance of the <code>plutonManager</code>.
+
+<p>The usual way to use the command port is via telnet. For security
+reasons, the command port is normally bound to a localhost address to
+constrain access to those who can log into the server.
+
+<p>The command port is currently designed to be a human interface, as
+  such, the interface may change without notice. In fact, the
+  long-term goal is to make the command-port a programmable interface
+  that is only accessed via a command-line program.
+
+<table border=1>
+<tr><th>Command<th>Description</tr>
+
+<tr><td><a name=CommandDebugon>debugon<td>Accepts a single parameter
+which defines which debug option to turn on. Valid debug options are
+the same as those supplied on the <code>plutonManager</code> command
+line</tr>
+
+<tr><td><a name=CommandDebugoff>debugoff<td>Reverse the action of
+debugon</tr>
+
+<tr><td><a name=CommandLogon>logon<td>Accepts a single parameter which
+defines which debug option to turn on. Valid debug options are the
+same as those supplied on the <code>plutonManager</code> command
+line</tr>
+
+<tr><td><a name=CommandLogoff>logoff<td>You need a description?</tr>
+<tr><td><a name=CommandService>service<td>Display service status - if
+an argument is present, restrict output to that service name</tr>
+<tr><td><a name=CommandProcess>process<td>Display process status</tr>
+<tr><td><a name=CommandStats>stats<td>Display general manager statistics</tr>
+
+</table>
+
+<p>
+<hr>
+<font size=-1>
+$Id: plutonManager.html 265102 2009-12-26 07:13:45Z markd $
+&copy; Copyright Yahoo! Inc, 2007, 2008
+</font>
+</body>
+</html>

@@ -1,0 +1,3 @@
+exec /usr/local/bin/java -cp platform-jar/pluton.jar:../tests -Djava.library.path=platform-jni tJavaService0
+prestart-processes      true
+minimum-processes 1

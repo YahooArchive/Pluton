@@ -1,0 +1,2 @@
+prestart-processes	false
+exec /bin/echo

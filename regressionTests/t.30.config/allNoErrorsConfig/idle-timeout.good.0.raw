@@ -1,0 +1,2 @@
+idle-timeout		600		# Drop below minimum-spare if idle for this long
+exec /bin/echo

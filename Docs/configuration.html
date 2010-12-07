@@ -1,0 +1,503 @@
+<html>
+<head>
+<link rel="shortcut icon" href=images/pluto-symbol.jpg type="image/x-icon" />
+<title>
+The Pluton Framework: Service Configuration
+</title>
+</head>
+
+<body>
+
+<center>
+<a href=index.html>
+<img height=100 src=images/pluto-charon.jpg ALT="[Pluto Charon Image]">
+</a>
+</center>
+
+<h2 align=center>The Pluton Framework: Service Configuration</h2>
+
+<h3>Introduction</h3>
+
+Service Keys are the naming mechanism by which clients address a
+service. The format is a dot separated set of components, ie:
+
+<pre>
+	<a href=serviceKey.html>Application.Function.Version.Serialization</a>
+</pre>
+
+<p>Service Key names are also used to name configuration files as the
+<code>plutonManager</code> scans the configuration directory for files
+with names which match this Service Key syntax and parses the contents
+as configuration files. All other file names are ignored.
+
+<p>Each configuration file represents a single service and the
+contents of the configuration file are described in this document.
+
+
+<h4>Contents</h4>
+
+<ul>
+<li><a href=#GeneralSyntax>General Configuration File Syntax</a>
+<li><a href=#Samples>Sample Configurations</a>
+<li><a href=#Parameters>Configuration Parameters</a>
+<ul>
+<li><a href=#affinity-timeout>affinity-timeout</a>
+<li><a href=#cd>cd</a>
+<li><a href=#enable-leak-ramping>enable-leak-ramping (not implemented)</a>
+<li><a href=#exec>exec</a>
+<li><a href=#exec-failure-backoff>exec-failure-backoff</a>
+<li><a href=#exit>exit</a>
+<li><a href=#idle-timeout>idle-timeout</a>
+<li><a href=#maximum-processes>maximum-processes</a>
+<li><a href=#maximum-requests>maximum-requests</a>
+<li><a href=#maximum-retries>maximum-retries</a>
+<li><a href=#maximum-threads>maximum-threads</a>
+<li><a href=#minimum-processes>minimum-processes</a>
+<li><a href=#occupancy-percent>occupancy-percent</a>
+<li><a href=#prestart-processes>prestart-processes</a>
+<li><a href=#recorder-cycle>recorder-cycle</a>
+<li><a href=#recorder-prefix>recorder-prefix</a>
+<li><a href=#ulimit-cpu-milliseconds>ulimit-cpu-milliseconds</a>
+<li><a href=#ulimit-data-memory>ulimit-data-memory</a>
+<li><a href=#ulimit-open-files>ulimit-open-files</a>
+<li><a href=#unresponsive-timeout>unresponsive-timeout</a>
+</ul>
+
+<li><a href=#Discussion>Further Discussion</a>
+</ul>
+
+<h4><a name=GeneralSyntax>General Configuration File Syntax</h4>
+
+Configuration files are text files and have simple syntactic rules:
+
+<ol>
+<li>Each line is self-contained
+and contains a single parameter name separated by white-space and a
+parameter value followed by an optional comment.
+
+<li>Parameters can be in any order
+
+<li>Parameter names must match exactly those defined
+
+<li>Valid parameter values are numbers, a boolean or a string
+
+<li>A number is an integer amenable to <code>strtol()</code>
+
+<li>Numbers can be suffixed with K, M or G to indicate Kilo, Mega or
+Giga multipliers respectively
+
+<li>A boolean can be either 'true' or 'false'
+
+<li>A string is all characters from the first non-whitespace to the
+last non-whitespace.
+
+<li>Quotes have no special meaning
+
+<li>A comment is signified by the '#' character - characters from the
+'#' to the end of the line are treated as whitespace
+
+<li>There is <i>no</i> continuation syntax - each line is self-contained
+
+<li>If a syntax error is detected, the configuration file is ignored
+
+<li>If a semantic error is detected, the configuration file is ignored.
+</ol>
+
+<h4><a name=Samples>Sample Configurations</h4>
+
+<p>
+Here is a sample configuration file with all possible parameters in
+alphabetical order:
+<p>
+
+<table border=1>
+<td>
+<pre>
+cd			.
+enable-leak-ramping	true
+exec			/usr/local/bin/ser45 -f /tmp/file1 -x
+exit			0		# A no-op - useful for shell testing
+exec-failure-backoff	60		# If fork/exec is failure - throttle for x seconds
+idle-timeout		600		# Exit if service instance idle for this long
+maximum-processes	10
+maximum-requests	1000
+maximum-retries		1		# Retry a request to another service instance
+minimum-processes	1
+occupancy-percent	50
+prestart-services	false
+recorder-cycle		0
+recorder-prefix		record.
+ulimit-cpu-milliseconds	0		# per request amortized across maximumRequests
+ulimit-data-memory	0M		# if zero, don't apply
+ulimit-open-files	0
+unresponsive-timeout	10		# seconds
+</pre>
+</table>
+
+<p>
+A minimalist configuration file looks like this:
+<p>
+
+<table border=1>
+<td>
+<pre>
+exec			/usr/local/bin/ser45 -g -s 23 -D /tmp
+</pre>
+
+</table>
+
+<p>
+A configuration file which doubles as a runnable shell script looks
+like this:
+<p>
+
+<table border=1>
+<td>
+<pre>
+#! /bin/sh
+cd			/some/place
+exec			/usr/local/bin/ser45
+exit			13			# Exec failed
+
+ulimit-cpu-milliseconds 100
+</pre>
+
+</table>
+
+<p>Note the use of the no-op <code>exit</code> parameter to identify
+when the <code>exec</code> fails. This can be a useful indicator for
+automated regression tests.
+
+<h4><a name=Parameters>Configuration Parameters</h4>
+
+This section describes all of the service configuration
+parameters. All parameters apply to the particular service. There is
+no interaction between different service configurations. In general,
+services are oblivious of each other.
+
+<p>
+<table border=1>
+<tr><th width=20%>Name<th>Type<th>Description</tr>
+
+<tr valign=top><td><a name=affinity-timeout>affinity-timeout</a><td>Number
+
+<td>Maximum number of seconds to retain an affinity connection. A
+client can hold on to an affinity connection indefinitely and thus
+stop services from being available for other clients. This timeout
+protects against a client holding onto a service indefinitely.
+
+<p>In general, affinity connections should be avoided unless
+absolutely necessary as injudicious use can only diminish the benefits
+of the Pluton Framework.
+
+<p>Default: 60, Minimum Allowed: 10, Maximum Allowed: 600</tr>
+
+<tr valign=top><td><a name=cd>cd</a><td>String
+
+<td>Change to this directory prior to starting the service. If not
+present, the service is started in the same directory as the
+<code>plutonManager</code>.
+<p>Default: none</tr>
+
+<tr valign=top><td><a name=enable-leak-ramping>enable-leak-ramping</a><td>Boolean
+
+<td>If <code>true</code>, apply a <i>ramping</i> function to
+<code>maximum-requests</code>. The effect being that different
+services instance have a different notion of their maximum number of
+requests and consequently exit after a varying number of requests
+relative to each other.
+
+<p>The idea is that memory leaks can be more easily detected if the
+service instance exits after a varying number of requests. If the exit
+memory size is constant across the different ranges, then a leak is
+unlikely. If the exit memory size grows with the number of requests,
+ie, a <i>ramp-up</i> in requests results in a corresponding
+<i>ramp-up</i> in memory usage, then a leak should be suspected.
+
+<p>The <code>plutonManager</code> has an option to log the exit
+resources, including memory, of a service instance.
+
+<p>Default: false</tr>
+
+<tr valign=top><td><a name=exec>exec<td>String
+
+<td>The command to execute as the service with
+<code>execv()</code>. Command line options and parameters - if any -
+are separated by spaces. Tokenizing the command-line parameters used a
+simple white-space parser. If you need a sophisticated startup
+environment, quoting or other specialized syntax, you may want to
+consider a shell wrapper that ultimately execs the service program.
+
+<p>If the <code>exec</code> command is a script or program which in
+turn executes another program, it is important to know that the
+<code>plutonManager</code> relies on knowing the process id of the
+service it execs. The implication, particularly for shell scripts, is
+that the final command <b>must be</b> run with an <code>exec</code> command
+so that the final process ID is the same one that the
+<code>plutonManager</code> started and is monitoring.
+
+
+<p>This is the only mandatory parameter. Default: None.</tr>
+
+<tr valign=top><td><a name=exec-failure-backoff>exec-failure-backoff<td>Number
+
+<td>If an exec fails or exits non-zero for whatever reason, do not attempt another exec
+of this service for this many seconds.
+
+<p>The theory is, if the error is permanent and likely requires human
+intervention then issuing numerous fork/execs that will fail is
+pointless. As a consequence, service programs need to be careful about
+non-zero exits.
+
+<p>While the minimum value allowed is zero, it
+is <bold>strongly</blod> recommended that you never set this parameter
+to zero unless you clearly appreciate the implication that this may
+result in the manager issuing a deleteriously large number of forks
+that fail very quickly and cause undue load on your system.
+
+<p>Default: 60, Minimum Allowed: 0, Maximum Allowed: none</tr>
+
+<tr valign=top><td><a name=exit>exit<td>Number
+
+<td>This parameter is a no-op parameter which happens to be useful if
+you want to run the configuration file as a script while testing.
+
+<p>Default: none</tr>
+
+<tr valign=top><td><a name=idle-timeout>idle-timeout<td>Number
+
+<td>
+This parameter only applies to services that are not processing any
+requests. If the service is at all active, then only the
+<code>occupancy-percent</code> parameter applies.
+<p>
+If no processes for the service report processing any requests in this
+number of seconds, then processes that are idle for at least this many
+seconds are notified to exit.
+
+<p>This parameter only affects processes in excess of the
+<code>minimum-processes</code> parameter.
+
+<p>Default: 120, Minimum Allowed: 10, Maximum Allowed: none</tr>
+
+<tr valign=top><td><a name=maximum-processes>maximum-processes<td>Number
+
+<td>The maximum number of instances that the
+<code>plutonManager</code> will ever run concurrently for a given service.
+
+<p>This is one of the few parameters where the default is likely to
+require adjustment as the choosing the optimal concurrency requires
+knowledge of the cost and frequency of requests to this service plus
+knowledge of available system resources.
+
+<p>Setting this value large can have a deleterious affect on the
+system.
+
+<p>Default: 10, Minimum Allowed: 1, Maximum Allowed: 10,000</tr>
+
+<tr valign=top><td><a name=maximum-requests>maximum-requests<td>Number
+
+<td>The maximum number of requests each instance will process prior to
+exiting. If <code>ulimit-cpu-milliseconds</code> is being used to
+protect against run-away CPU usage, <code>maximum-requests</code>
+should be set to a more modest amount than the default.
+
+<p>This value <bold>must</bold> be greater than zero.
+
+<p>Default: 10,000, Maximum Value: none</tr>
+
+<tr valign=top><td><a name=maximum-retries>maximum-retries<td>Number
+
+<td><font color=red>WARNING: NOT IMPLEMENTED YET.</font>
+
+<p>The maximum number of automatic retries to attempt if a request
+fails to complete. Client's can over-ride automatic retry attempts by
+setting the <code>pluton::noRetryAttr</code> attribute for a request.
+
+<p>This parameter applies to requests that do not complete. It does
+not apply to requests that complete with a fault.
+
+<p>The theory is that services have bugs and that they crash for
+essentially two reasons. Either the request they are processing is
+triggering the bug or some "previous state" in conjunction with the
+request is triggering the bug.
+
+<p>In the latter case, retrying the request with another instance is
+likely to succeed as the "previous state" is unlikely to be
+pervasive. This encourages increasing the maximum number of retries.
+
+<p>In the former case, retries will cause the service to crash. This
+encourages decreasing the maximum number of retries.
+
+<p>Default: 1, Maximum Value: 10</tr>
+
+<tr valign=top><td><a name=maximum-threads>maximum-threads<td>Number
+
+<td>The maximum number of threads (pseudo or otherwise) that each
+service process can start. This parameter is primarily intended for
+tools that are built with the manager. A service must register that it
+is threaded when this parameter is present in the configuration. User
+services do not have access to the API for registering as a threaded
+service so this parameter is never used by regular services.
+
+<p>This parameter is used by a threaded service to indicate how many
+threads to start to service requests. It is also used to size the
+shared memory scoreboard structure.
+
+<p>Default: 1, Maximum Value: 10,000</tr>
+
+<tr valign=top><td><a name=minimum-processes>minimum-processes<td>Number
+
+<td>The <code>plutonManager</code> keeps at least this many instances
+running. There is one situation where the <code>plutonManager</code>
+will let the number of service processes go below this value.
+
+<p>The situation is if the fork/exec sequence is failing or the
+process is exiting non-zero for some reason. In this case the creation
+of new processes is rate limited by <code>exec-failure-backoff</code>
+which <i>may</i> result in less services than
+<code>minimum-processes</code>.
+
+<p>Default: 1, Maximum Value: not greater than maximum-processes</tr>
+
+<tr valign=top><td><a name=occupancy-percent>occupancy-percent<td>Number
+
+<td>The <code>plutonManager</code> adjusts the number of instances to
+average this percentage of occupancy across all instances. You can
+think of this as a utilization percent. The <code>plutonManager</code>
+uses a hysteresis and a sample period to damp instance flapping.
+
+<p>Occupancy and concurrency correlate in this context. If
+you need better concurrency at the cost of more instances, then
+occupancy should be set lower. If the preference is for less
+concurrency and fewer instances, concurrency should be set higher.
+
+<p>Regardless of the configured occupancy, the outcome of the
+occupancy calculations is bound by the <code>minimum-processes</code>
+and <code>maximum-processes</code> configuration parameters.
+
+
+<p>Default: 70, Maximum Value: 100</tr>
+
+<tr valign=top><td><a name=prestart-processes>prestart-processes<td>Boolean
+
+<td>If <code>true</code> the <code>minimum-processes</code> are started
+as soon as the service configuration is loaded. If <code>false</code>
+starting the <code>minimum-processes</code> is deferred until the
+first request is made to this service.
+
+<p>Default: false</tr>
+
+<tr valign=top><td><a name=recorder-cycle>recorder-cycle<td>Number
+
+<td>The serviceAPI has the ability to write (or record) each request
+and response to a file. These files are very useful for constructing
+regression tests and debugging services. To protect against unlimited
+consumption of disk space, this parameter defines the maximum number
+of recorder files to create. Once this limit is reached, the
+serviceAPI cycles through the same set of file names, over-writing
+earlier files. If this parameter is zero, no recorder files are
+created.
+
+<p>Default: 0, Maximum Value: none</tr>
+
+<tr valign=top><td><a name=recorder-prefix>recorder-prefix<td>String
+
+<td>As mentioned above, the serviceAPI can record requests and
+response to a set of files. The presence of this parameter turns on
+that recording and also defines the path to use to construct the file
+names.
+
+<p>Default: none</tr>
+
+<tr valign=top><td><a
+name=ulimit-cpu-milliseconds>ulimit-cpu-milliseconds<td>Number
+
+<td>To protect against run-away services, this parameter can be used
+to constrain the maximum amount of CPU a service can consume. This
+value represents the CPU milliseconds per request and is multiplied by
+<code>maximum-requests</code> to create a value suitable for the
+<code>setrlimit(RLIMIT_CPU)</code> system call.
+
+<p>Since <code>setrlimit(RLIMIT_CPU)</code> applies to the life-time
+of the process, it makes sense to set <code>maximum-requests</code> to
+a relatively small value, say, 500, to capture the run-away process
+before it consumes a large amount of CPU. For example, setting
+<code>maximum-requests</code> to 10,000 and setting
+<code>ulimit-cpu-milliseconds</code> to 1,000 is close to useless as
+the process will consume 10,000 CPU seconds or nearly 3 CPU hours
+before the ulimit value will apply. Having said that, setting any
+upper value is better than no limit. If in doubt you should apply a
+limit and watch the <code>plutonManager</code> logs for limit errors.
+
+<p>If either <code>ulimit-cpu-milliseconds</code> or
+<code>maximum-requests</code> is zero, then no ulimit is set.
+
+<p>Default: 0, Maximum Value: none</tr>
+
+<tr valign=top><td><a name=ulimit-data-memory>ulimit-data-memory<td>Number
+
+<td>To protect against a service leaking memory, this parameter can be
+used to set the maximum amount of memory a service can allocate. This
+parameter represents the number of megabytes set by
+<code>setrlimit(RLIMIT_DATA)</code>. If this parameter is zero, no
+limit is set.
+
+<p>Default: 0, Maximum Value: none</tr>
+
+<tr valign=top><td><a name=ulimit-open-files>ulimit-open-files<td>Number
+
+<td>To protect against a service leaking file descriptors, this
+parameter can be used to set the maximum number of file descriptors a
+service can have open. If this parameter is zero, no limit is set.
+
+<p>When setting this parameter, keep in mind that a process often
+consumes 5-10 file descriptors simply as part of the start-up process
+when loading dynamic libraries and the like. Furthermore, a service
+instance inherits a number of file descriptors from the
+<code>plutonManager</code>. As a general rule, you should assume that
+10 file descriptors are needed just to start a service and have it
+accept requests.
+
+<p>Setting this value higher than needed increases the risk of a
+resource leak in a service affecting the overall system.
+
+<p>Default: 0, Maximum Value: 1,000</tr>
+
+<tr valign=top><td><a name=unresponsive-timeout>unresponsive-timeout<td>Number
+
+<td>To protect against a service stalling, this parameter can be used
+to set the maximum number of seconds allowed for a service to
+respond. If a service instance does not respond within this time, the
+<code>plutonManager</code> kills the instance.
+
+<p>This parameter is unrelated to the timeout value used by the
+clientAPI excepting that it obviously should be larger, preferably
+significantly larger. If this parameter is zero, no checking is done.
+
+<p>For efficiency reasons, the manager uses a course-grained timer
+  when monitoring for an unresponsive service so typically a service
+  will need to be unresponsive for a number of seconds longer than the
+  configured value. In general though, this parameter is intended to
+  catch a service that is never going to return, so plus or minus a
+  couple of seconds of granularity is not going to make any
+  difference in that regard.
+
+<p>Default: 10, Minimum Value: 5, Maximum Value: 600</tr>
+
+</table>
+
+<h4><a name=Discussion>Further Discussion</h4>
+
+The description of each parameter alludes to various trade-offs. The
+section elaborates on the most significant parameters and some of the
+reasoning behind how you might choose particular values.
+
+<p>
+<hr>
+<font size=-1>
+$Id: configuration.html 260483 2009-10-16 18:47:56Z markd $
+&copy; Copyright Yahoo! Inc, 2007, 2008
+</font>
+</body>
+</html>

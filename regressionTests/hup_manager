@@ -1,0 +1,5 @@
+#! /bin/sh
+
+kill -HUP `cat data/manager.pid`  2>/dev/null 1>&2
+
+

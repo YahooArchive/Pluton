@@ -1,0 +1,5 @@
+# minimum cannot be greater than maximum
+
+exec /bin/echo
+maximum-processes 100
+minimum-processes 200

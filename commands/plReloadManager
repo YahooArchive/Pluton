@@ -1,0 +1,71 @@
+#! /bin/sh
+
+# This script abstracts the reload function so that service
+# installs do not need to know the nitty gritty of how the
+# plutonManager is managed.
+
+# This script (mostly) only exists because you cannot nest yinst
+# commands with yinst.
+
+args=`getopt a $*`
+if [ $? != 0 ]
+then
+    echo 'Usage: plReloadManager [-a]'
+    exit 2
+fi
+
+reloadAll=n
+
+set -- $args
+for f
+do
+    case "$f" in
+        -a)
+            reloadAll=y
+            shift;;
+
+        *)
+            shift;;
+
+       --)
+            break;;
+    esac
+done
+
+# Check that the user can issue the svc command
+
+id=`id -un`
+warn=0
+if [ $id != 'yahoo' -a $id != 'root' ]; then
+    warn=1
+    cat <<EOF
+
+WARNING: You are running as user $id but normally this command is only
+WARNING: effective when running as 'yahoo' or 'root'.
+
+WARNING: It is likely this request will fail, but we're proceeding
+WARNING: anyway, just in case you know something we don't...
+
+EOF
+fi
+
+if [ $reloadAll = 'y' ]; then
+    echo Reload All
+    svc -i /usr/local/var/service/plutonManager
+else
+    echo Reload Changed
+    svc -h /usr/local/var/service/plutonManager
+fi
+
+# Bug. svc doesn't exit non-zero on failure! Bah humbug djb.
+
+cat <<EOF
+
+The plutonManager has been notified to reload the configuration.
+
+Do not expect configuration changes to be instantaneous as the
+plutonManager patiently waits for active services to finish. In the
+worst case, the plutonManager can wait for over twelve seconds before
+uncremoniously evicting a recalcitrant service.
+
+EOF

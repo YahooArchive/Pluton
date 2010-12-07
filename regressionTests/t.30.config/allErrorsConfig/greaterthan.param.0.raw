@@ -1,0 +1,4 @@
+# below minimum value allowed
+
+exec /bin/echo
+affinity-timeout 601

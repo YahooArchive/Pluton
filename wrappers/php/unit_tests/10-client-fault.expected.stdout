@@ -1,0 +1,8 @@
+client has fault after bogus initialize - good
+Fault code=-33 Text=pluton::Fault=-33/-1 (openForMmapFailed:open() prior to mmap() of lookup Path failed) errno=2:No such file or directory '/does/not/exist' at pluton::client::initialize->initialize:325
+Short=SHORT pluton::Fault=-33/-1 errno=2 '/does/not/exist'
+Long=LONG pluton::Fault=-33/-1 (openForMmapFailed:open() prior to mmap() of lookup Path failed) errno=2:No such file or directory '/does/not/exist' at pluton::client::initialize->initialize:325
+Request is in progress - good
+Request is NOT in progress - good
+
+Client fault test ok

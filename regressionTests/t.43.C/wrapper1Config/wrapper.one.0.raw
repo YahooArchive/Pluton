@@ -1,0 +1,5 @@
+exec			platform-tests/tCwrapper1
+maximum-processes	2
+minimum-processes	2
+affinity-timeout	10
+prestart-processes	true

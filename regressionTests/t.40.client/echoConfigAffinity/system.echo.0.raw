@@ -1,0 +1,5 @@
+exec			platform-services/echo
+maximum-processes	1
+minimum-processes	1
+affinity-timeout	10
+prestart-processes	true

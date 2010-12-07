@@ -1,0 +1,3 @@
+exec platform-services/echo
+maximum-processes 1
+unresponsive-timeout 40

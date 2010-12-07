@@ -1,0 +1,209 @@
+<html>
+<head>
+<link rel="shortcut icon" href=images/pluto-symbol.jpg type="image/x-icon" />
+<title>
+The Pluton Framework: Log Entries
+</title>
+</head>
+
+<body>
+
+<center>
+<a href=index.html>
+<img height=100 src=images/pluto-charon.jpg ALT="[Pluto Charon Image]">
+</a>
+</center>
+
+<h2 align=center>The Pluton Framework: Log Entries</h2>
+
+The <code>plutonManager</code> can generate numerous log entries, most
+of which are intended to be self explanatory. However, some log
+entries provide a condensed set of statistics or information which is
+not readily apparent.
+
+<p>
+This page identifies the log entry categories and provides a link to
+an explanation, if available.
+
+<p>
+<table border=1>
+<tr><th>Category/Link<th>Description</tr>
+
+<tr><th align=left><a href=#Calibrate>Calibrate</a><td>Manage the number of processes</tr>
+<tr><th align=left><a href=#Child>Child</a><td>Results of fork/exec of child processes</tr>
+<tr><th align=left>Config<td>Configuration scanning results</tr>
+<tr><th align=left>FATAL<td>Catastrophic <code>plutonManager</code> error</tr>
+<tr><th align=left>Final<td>Residual object count after all known resources are freed</tr>
+<tr><th align=left>Log<td>Log entries created by services writing to STDERR</tr>
+<tr><th align=left>Manager<td>General manager messages</tr>
+<tr><th align=left>Option<td>Option parameters found on command line</tr>
+<tr><th align=left><a href=#Process>Process</a><td>All process related activity</tr>
+<tr><th align=left>Service<td>All service related activity</tr>
+<tr><th align=left><a href=#Stats>Stats</a><td>Periodic statistics reports</tr>
+<tr><th align=left><a href=#Uptime>Uptime</a><td>Manager UpTime report</tr>
+<tr><th align=left><a href=#Usage>Usage</a><td>Usage statistics for a process</tr>
+
+</table>
+
+<h4><a name=Calibrate>Calibrate: Manage the number of processes</h4>
+
+<pre>
+Calibrate Down: system.echo.0.raw apc=40 currO=36 prevO=64 New1Occ=37 New2Occ=65
+</pre>
+
+<p>Generated when the calibration algorithm has decided to reduce the
+number of processes.
+<p>
+
+<table border=1>
+<tr><th align=left>apc<td>Active Process Count</tr>
+<tr><th align=left>currO<td>Occupancy Percentage of current sample period</tr>
+<tr><th align=left>prevO<td>Occupancy Percentage of previous sample period</tr>
+<tr><th align=left>propCO<td>Proposed Occupancy Percentage if a process is removed</tr>
+<tr><th align=left>poprPO<td>Proposed Occupancy Percentage of previous sample if a process
+is removed</tr>
+</table>
+
+<p>
+
+<pre>
+Calibrate Up: system.echo.0.raw apc=39 currO=70 prevO=69 currLQ=0 prevLQ=0 shortfall=1
+</pre>
+
+
+<p>Generated when the calibration algorithm has decided to increase the
+number of processes.
+<p>
+
+<table border=1>
+<tr><th align=left>apc<td>Active Process Count</tr>
+<tr><th align=left>currO<td>Occupancy Percentage of current sample period</tr>
+<tr><th align=left>prevO<td>Occupancy Percentage of previous sample period</tr>
+<tr><th align=left>currLQ<td>Depth of Listen Queue (not accurate on Linux)</tr>
+<tr><th align=left>prevLQ<td>Depth of Listen Queue of previous sample period</tr>
+</table>
+
+
+<h4><a name=Child>Child: Results of fork/exec of child processes</h4>
+
+<pre>
+Child Exit: normal system.echo.0.raw/5-29498 excess processes
+</pre>
+
+Generated when occupancy is too low and a process has been shutdown.
+
+<pre>
+Child Exit: normal system.echo.0.raw/6-29499 idle timeout
+</pre>
+
+Generated when a service is in the <em>Idle</em> phase and there is
+more than one process active.
+
+<h4><a name=Process>Process: All process related activity</h4>
+
+<pre>
+Process Start: system.echo.0.raw/38-29568 (39 of 60)
+</pre>
+
+<table border=1>
+<tr><th align=left>38<td>Internal Process Index to create a unique log ID</tr>
+<tr><th align=left>29568<td>PID</tr>
+<tr><th align=left>39<td>Active processes for this service</tr>
+<tr><th align=left>60<td>Maximum processes configured</tr>
+</table>
+
+<h4><a name=Stats>Stats: Periodic statistics reports</h4>
+
+<pre>
+Stats: Processes=40 Children=40 excessProcesses=1 ...
+</pre>
+
+Periodic report about running processes and reasons why processes have
+exited. Only non-zero reasons are added to the log line and the log
+line is only displayed if at least one of the counts is non-zero.
+
+<p>
+
+<table border=1>
+<tr><th align=left>Processes<td>Number of active processes</td>
+<tr><th align=left>Children<td>Number of forked children which have not exited</tr>
+
+<tr><th align=left>abnormalExit<td>Processes that made a non-zero exit() call</tr>
+<tr><th align=left>acceptFailed<td>Exit count of processes that returned -1 from <code>accept()</code></tr>
+<tr><th align=left>excessProcesses<td>Exit count due to <code>occupancy-percent</code>config parameter</tr>
+<tr><th align=left>excessProcesses<td>Processes that exited due to low occupancy</tr>
+<tr><th align=left>lostIO<td>Processes shut down due to closing STDERR</tr>
+<tr><th align=left>maxRequests<td>Exit count due to <code>maximum-requests</code> config parameter</tr>
+<tr><th align=left>processIdle<td>Exit count due to <code>idle-timeout</code>config parameter</tr>
+<tr><th align=left>runawayChild<td>Processes that ignored shutdown signals</tr>
+<tr><th align=left>serviceShutdown<td>Exit count due to a service shutting down</tr>
+<tr><th align=left>unresponsive<td>Exit count due to services not responding to requests</tr>
+
+</table>
+
+
+<h4><a name=Uptime>Uptime: Manager UpTime report</h4>
+
+<pre>
+Uptime: 3D15h10m25s CPU=1% Mem=2MB Objects: Services=14 Process=517 Max (14/609)
+</pre>
+
+Periodic manager report showing global resource usage and activity.
+
+<p>
+<table border=1>
+<tr><th align=left>3D15h10m25s<td>Uptime in days, hours, minutes and seconds</tr>
+<tr><th align=left>CPU<td>CPU percentage consumed by the manager since the last Uptime entry</tr>
+<tr><th align=left>Mem<td>Maximum ru_maxrss memory used by the manager as reported by <code>getrusage()</code></tr>
+<tr><th align=left>Service<td>Number of active service objects</tr>
+<tr><th align=left>Process<td>Number of active process objects</tr>
+<tr><th align=left>Max<td>Peak Service and Process objects (Service/Process)</tr>
+</table>
+
+
+<h4><a name=Usage>Usage: Usage statistics for a process</h4>
+
+
+<pre>
+Usage: system.echo.0.raw/9-70956 Active=50s Idle=2m36s Reqs=194//12/3/2 Sz=5.1K/100K 6.2K/103K \
+   mSecs=259 260/260/260/260/261/261/261/261/261/261/270/285                                   \
+   CPUms/rq=0.167113/0.167108 Mem=2/0/0
+</pre>
+
+The Usage log line is generated whenever a process exits. It provides
+resource usage and performance data that should be useful for
+evaluating service performance, both instantaneously and as a trend
+(the line is wrapped for viewing convenience).
+
+<p>
+
+<table border=1>
+<tr><th align=left>Active=50s<td>Total elapse time used to process all requests</tr>
+<tr><th align=left>Idle=2m36s<td>How long the process was inactive and thus
+available for new requests</tr>
+<tr><th align=left>Reqs=194<td>Count of requests accepted by this process</tr>
+<tr><th align=left>/12<td>Requests returned with a fault</tr>
+<tr><th align=left>/3<td>Requests that failed while reading the request</tr>
+<tr><th align=left>/2<td>Requests that failed while writing the response</tr>
+
+<tr><th align=left>Sz=5.1K<td>Average request size in bytes</tr>
+<tr><th align=left>/100K<td>Maximum request size in bytes</tr>
+<tr><th align=left>6.2K<td>Average response size in bytes</tr>
+<tr><th align=left>/103K<td>Maximum response size in bytes</tr>
+
+<tr><th align=left>msecs/rq=259<td>Average elapsed milliseconds per requests</tr>
+<tr><th align=left>260/.. /285<td>The twelve slowest requests by elapsed milliseconds</tr>
+<tr><th align=left>CPUms<td>Average CPU milliseconds per request as
+reported by <code>getrusage()</code>(ru_utime/ru_stime)</tr>
+<tr><th align=left>Mem=2<td>MBs of memory as reported by
+<code>getrusage()</code> (maxrss/idrss/isrss)</tr>
+</table>
+
+
+<p>
+<font size=-1>
+$Id: logs.html 260483 2009-10-16 18:47:56Z markd $
+&copy; Copyright Yahoo! Inc, 2007
+</font>
+</body>
+</html>

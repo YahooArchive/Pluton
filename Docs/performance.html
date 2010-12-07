@@ -1,0 +1,99 @@
+<html>
+<head>
+<link rel="shortcut icon" href=images/pluto-symbol.jpg type="image/x-icon" />
+<title>
+The Pluton Framework: Performance
+</title>
+</head>
+
+<body>
+
+<center>
+<a href=index.html>
+<img height=100 src=images/pluto-charon.jpg ALT="[Pluto Charon Image]">
+</a>
+</center>
+
+<h2 align=center>The Pluton Framework: Performance</h2>
+
+Each service exchange involves the following actions:
+
+<p>
+<center>
+<table border=1>
+<tr><th>Step<th>Client<th>Direction<th>Service</tr>
+
+<tr><td>1<td>	Connect to A Unix Socket<td align=center>    --&gt;	<td>  				</tr>
+<tr><td>2<td>	  			<td align=center>	--&gt;	<td>Accept of a connection	</tr>
+<tr><td>3<td>Write of Request Data	<td align=center>	--&gt;	<td>  				</tr>
+<tr><td>4<td>  				<td align=center>	--&gt;	<td>Read of Request Data	</tr>
+<tr><td>5<td>  				<td align=center>&lt;--	<td>Write of Response Data	</tr>
+<tr><td>6<td>Read of Response Data	<td align=center>&lt;--	<td>  				</tr>
+<tr><td>7<td>close()			<td align=center>&lt;--&gt;	<td>close()			</tr>
+</table>
+</center>
+
+<p>Including context switches, this set of actions clearly come at a
+cost. The dominant cost is the CPU overhead in performing the actions
+and the consequential latency.
+
+<h4>CPU overhead</h4>
+
+It varies depending on the OS (pluton runs on FreeBSD, Linux and OS/X)
+but on a relatively ancient CPU (circa 2003) the CPU cost of a zero
+length exchange is approximately 300 microseconds or .3 of a
+millisecond and on a modern CPU (circa 2006) the cost is around .1 of
+a millisecond.
+
+<p>Increasing the size of the request changes the dynamics such that
+the transfer cost eventually dominates all other costs. The following
+table shows the CPU cost and latency of different sized requests
+spread across a menagerie of CPUs.
+
+<p>
+<center>
+<table border=1>
+<tr><th colspan=5>CPU Cost per request (milliseconds)</tr>
+<tr><th>Request Size (bytes)
+<th>PPC 1.5Ghz<br>OS/X 10.4
+<th>P-III 886MHz<br>FBSD4
+<th>dual P-4 3Ghz<BR>RHEL4
+<th>Athlon 64 X2 Dual Core 3800+<BR>FBD6.2
+</tr>
+
+<tr><td align=right>0<td align=right>0.31<td>0.22<td>0.11<td>0.09	</tr>
+<tr><td align=right>1,000<td align=right>0.33<td>0.23<td>0.11<td>0.10	</tr>
+<tr><td align=right>2,000<td align=right>0.34<td>0.24<td>0.11<td>0.10	</tr>
+<tr><td align=right>8,000<td align=right>0.36<td>0.29<td>0.13<td>0.12	</tr>
+<tr><td align=right>16K<td align=right>0.50<td>0.37<td>0.14<td>0.14	</tr>
+<tr><td align=right>32K<td align=right>0.69<td>0.66<td>0.15<td>0.19	</tr>
+<tr><td align=right>64K<td align=right>1.05<td>1.57<td>0.18<td>0.31	</tr>
+<tr><td align=right>128K<td align=right>1.98<td>3.13<td>0.30<td>0.59	</tr>
+<tr><td align=right>256K<td align=right>3.52<td>5.87<td>0.60<td>1.38	</tr>
+<tr><td align=right>1M<td align=right>11.90<td>20.93<td>2.59<td>5.11	</tr>
+<tr><td align=right>2M<td align=right>21.40<td>41.15<td>4.83<td>10.03	</tr>
+<tr><td align=right>4M<td align=right>41.33<td>79.10<td>9.43<td>19.80	</tr>
+
+</table>
+</center>
+<br>
+<br>
+<p>
+Here is a graph of the response times at the lower end of the exchange
+size:
+<br>
+<img src=images/responseTimes2.jpg>
+
+<p>
+and here is a graph of all data points:
+<br>
+<img src=images/responseTimes.jpg>
+
+<p>
+<hr>
+<font size=-1>
+$Id: performance.html 260483 2009-10-16 18:47:56Z markd $
+&copy; Copyright Yahoo! Inc, 2007
+</font>
+</body>
+</html>

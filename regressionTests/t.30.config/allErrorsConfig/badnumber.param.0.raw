@@ -1,0 +1,2 @@
+exec /bin/echo
+maximum-processes xxx

@@ -1,0 +1,1367 @@
+<html>
+<head>
+<link rel="shortcut icon" href=images/pluto-symbol.jpg type="image/x-icon" />
+<title>
+The Pluton Framework: Client API
+</title>
+</head>
+
+<body>
+
+<center>
+<a href=index.html>
+<img height=100 src=images/pluto-charon.jpg ALT="[Pluto Charon Image]">
+</a>
+</center>
+
+<h2 align=center>The Pluton Framework: Client API</h2>
+
+<h3>Introduction</h3>
+
+This is the core client API which provides mechanism by which a client
+aggregates and send requests to services. This API is written in C++
+and provides a simple blocking interface to parallel service
+requests. The target clients for this API are programs which wish to
+avoid the complexity of parallel processing but wish to gain the
+benefits from it.
+
+<p>
+For the more sophisticated programs that use non-blocking techniques,
+there are <a href=clientAPINonBlock.html>non-blocking APIs</a> that
+let you integrate Pluton Requests with your non-blocking
+program. These non-blocking interfaces are especially designed with
+<a href=http://state-threads.sourceforge.net/>State Threads</a>
+and
+<a href=http://monkey.org/~provos/libevent/>libevent</a>
+in mind but can be used with any program which uses <code>poll(),
+select()</code> or <code>kqueue()</code>-like interfaces.
+
+<p>
+<table border=1>
+<tr><td><em>Warning about threads:</em> None of the APIs are thread-safe
+  unless the application follows
+  the <a href=threading.html>instructions and rules</a> regarding
+  thread-safe use of the client library.
+</table>
+
+<p>
+
+A <a href=sampleClient.html>sample client program</a> demonstrates the
+methods typically used by a client. Unlike a Pluton service, the
+structure of a client is expected to be more complex and less amenable
+to a prescriptive structure, consequently, this sample client should
+not be view as indicative of how a client might be written.
+
+<p>Also unlike a Pluton service, a client needs to manage multiple
+requests at a time so there are distinct sets of methods for
+manipulating requests. Conversely, the service interface is purposely
+constrained to the notion of a <i>current</i> request. In short,
+because a client requires greater flexibility, the client API imposes
+more house-keeping to manage requests.
+
+<h3>Sample Code</h3>
+To assist in bootstrapping the development of new clients,
+<a
+href=sampleClient.cc.txt>this source code</a> of a sample
+client may provide you with a useful starting point.
+
+
+<h3>Table of Contents</h3>
+
+There are five major categories of methods:
+
+<ol>
+<li><a href=#constructinitialize>Construction, initialize and interrogate</a> a <code>pluton::client</code>
+object used to interact with services:
+
+<ul>
+<li><a href=#construction><code>pluton::client</code></a> constructor
+<li><a href=#initialize><code>pluton::client::initialize()</code></a>
+<li><a href=#clientReset><code>pluton::client::reset()</code></a>
+<li><a href=#setTimeoutMilliSeconds><code>pluton::client::setTimeoutMilliSeconds()</code></a>
+<li><a href=#getTimeoutMilliSeconds><code>pluton::client::getTimeoutMilliSeconds()</code></a>
+<li><a href=#getAPIVersion><code>pluton::client::getAPIVersion()</code></a>
+<li><a href=#setDebug><code>pluton::client::setDebug()</code></a>
+</ul>
+
+<p>Importantly:
+
+<ul>
+<li>
+<a href=#clientHasFault><code>pluton::client::hasFault()</code></a>
+and
+<a href=#clientGetFault><code>pluton::client::getFault()</code></a>
+</ul>
+
+<p>
+<li><a href=#preparing>Preparing Requests</a>:
+
+<ul>
+<li><a href=#requestReset><code>pluton::clientRequest::reset()</code></a>
+<li><a href=#setRequestData><code>pluton::clientRequest::setRequestData()</code></a>
+<li><a href=#setContext><code>pluton::clientRequest::setContext()</code></a>
+
+<p>
+<li><a href=#setAttribute><code>pluton::clientRequest::setAttribute()</code></a>
+<ul>
+<li><a href=#noWaitAttr><code>pluton::noWaitAttr</code></a>
+<li><a href=#noRemoteAttr><code>pluton::noRemoteAttr</code></a>
+<li><a href=#noRetryAttr><code>pluton::noRetryAttr</code></a>
+<li><a href=#keepAffinityAttr><code>pluton::keepAffinityAttr</code></a>
+<li><a href=#needAffinityAttr><code>pluton::needAffinityAttr</code></a>
+</ul>
+
+<li><a href=#getAttribute><code>pluton::clientRequest::getAttribute()</code></a>
+<li><a href=#clearAttribute><code>pluton::clientRequest::clearAttribute()</code></a>
+
+<p>
+<li><a href=#setClientHandle><code>pluton::clientRequest::setClientHandle()</code></a>
+<li><a href=#getClientHandle><code>pluton::clientRequest::getClientHandle()</code></a>
+
+
+</ul>
+
+<p>
+<li>Adding Requests to the
+<code>pluton::client</code> execution queue with
+<a href=#addRequest><code>pluton::client::addRequest()</code></a>
+
+<p>
+<li><a href=#exchanging>Exchanging Queued Requests</a> and waiting for completion:
+
+<ul>
+<li><a href=#executeAndWaitSent><code>pluton::client::executeAndWaitSent()</code></a>
+<li><a href=#executeAndWaitAll><code>pluton::client::executeAndWaitAll()</code></a>
+<li><a href=#executeAndWaitAny><code>pluton::client::executeAndWaitAny()</code></a>
+<li><a href=#executeAndWaitOne><code>pluton::client::executeAndWaitOne()</code></a>
+</ul>
+
+<p>
+<li><a href=#interpretingRequests>Interpreting Request Results</a>:
+
+<ul>
+<li><a href=#getFault><code>pluton::clientRequest::getFault()</code></a>
+<li><a href=#getFaultCode><code>pluton::clientRequest::getFaultCode()</code></a>
+<li><a href=#getFaultText><code>pluton::clientRequest::getFaultText()</code></a>
+<li><a href=#getResponseData><code>pluton::clientRequest::getResponseData()</code></a>
+<li><a href=#hasFault><code>pluton::clientRequest::hasFault()</code></a>
+<li><a href=#inProgress><code>pluton::clientRequest::inProgress()</code></a>
+<li><a href=#getServiceName><code>pluton::clientRequest::getServiceName()</code></a>
+</ul>
+</ol>
+
+<h3><a name=constructinitialize>Construction, initialize and interrogate</h3>
+
+A client communicates to the services via a
+<code>pluton::client</code> object. This object must be initialized
+with <code>pluton::client::initialize()</code> prior to use. There are
+a number of additional methods which a client may choose to use to
+interrogate and manage this object.
+
+<h4><a name=construction>pluton::client</h4>
+
+
+Each instance of <code>pluton::client</code> is managed separately by
+the client API. This is particularly relevant for the
+<a href=#exchanging><code>executeAndWait*</code></a> methods which only wait on requests
+associated with the particular instance. This per-instance management
+is also relevant to the <a
+href=#clientReset><code>pluton::client::reset()</code></a> method.
+
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/client.h&gt;
+
+    pluton::client C(const char* yourName="", unsigned int defaultTimeoutMilliSeconds=4000);
+
+</pre>
+
+<h5>PARAMETERS</h5>
+
+<table border=1>
+<tr><th>Name<th>Description</tr>
+
+<tr valign=top><td>yourName<td>If present, a C-string used for logging and
+diagnostic purposes.</tr>
+
+<tr valign=top><td>defaultTimeoutMilliSeconds<td>If present, the number of
+milliseconds to allow each request to complete.</tr>
+
+</table>
+
+<p>
+
+<h4><a name=initialize>pluton::client::initialize()</h4>
+
+The <code>initialize()</code> method prepares the client for
+exchanging requests. One reason for providing a separate
+initialization function after construction is so the caller can
+detect errors without having to <i>catch</i> construction failures.
+
+<p>The primary purpose of <code>initialize()</code> is to establish a
+relationship with a plutonManager so the client API can discover
+services.
+
+<p>Second and subsequent initialization calls are ignored by the
+client API. This is on purpose so the client API can be used by
+different application libraries which are not aware of each other. The
+assumption is that the <em>outer-most</em> or first caller is the one
+most likely to have the correct knowledge of the lookup path.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/client.h&gt;
+
+    pluton::client C;
+
+    bool C.initialize(const char* lookupMapPath=0);
+</pre>
+
+<h5>PARAMETERS</h5>
+
+<table border=1>
+<tr><th>Name<th>Description</tr>
+
+<tr valign=top><td>lookupMapPath<td>The C-string path of the lookupMap file created by the
+plutonManager. If empty or NULL, use the contents of the
+<b>plutonLookupMap</b> environment variable if present, otherwise
+default to "/usr/local/var/pluton/lookup.map"</tr>
+
+</table>
+
+<h5>RETURN VALUE</h5>
+
+<code>True</code> is returned if the initialization is successful,
+otherwise <code>false</code>  is returned and fault information is
+available via
+<a href=#clientGetFault><code>pluton::client::getFault()</code></a>.
+
+<p>
+
+<h4><a name=clientReset>pluton::client::reset()</h4>
+
+The <code>reset()</code> method returns a <code>pluton::client</code>
+object to the initial state. All outstanding requests associated with
+that <code>pluton::client</code> are terminated and removed from the
+internal execution queues. Removed requests are <em>not</em>
+subsequently available via the <code>executeAndWait*</code> methods.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/client.h&gt;
+
+    pluton::client C;
+
+    void C.reset();
+</pre>
+
+<p>
+
+<h4><a
+name=setTimeoutMilliSeconds>pluton::client::setTimeoutMilliSeconds()</h4>
+
+By default, the <code>pluton::client</code> uses a timeout of four
+seconds from the time a request is sent to the time a response must be
+returned. The method replaces this value and applies to all future requests.
+
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/client.h&gt;
+
+    pluton::client C;
+
+    void C.setTimeoutMilliSeconds(unsigned int timeoutMilliSeconds);
+</pre>
+
+<h5>PARAMETERS</h5>
+
+<table border=1>
+<tr><th>Name<th>Description</tr>
+<tr valign=top><td>timeoutMilliSeconds<td>The number of milliseconds to
+allow each request to complete.</tr>
+</table>
+
+<p>
+
+<h4><a
+name=getTimeoutMilliSeconds>pluton::client::getTimeoutMilliSeconds()</h4>
+
+Return the current timeout value.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/client.h&gt;
+
+    pluton::client C;
+
+    unsigned int C.getTimeoutMilliSeconds();
+</pre>
+
+<h5>RETURN VALUE</h5>
+
+The current timeout value in milliseconds.
+
+<p>
+
+<h4><a name=getAPIVersion>pluton::client::getAPIVersion()</h4>
+
+Provide <code>pluton::client</code> version information for debugging
+purposes.
+
+<p>
+The returned C-string is the RCS ID of the source version used to build
+this API. Recording this value with an error message may offer some
+diagnostic value to the API maintainers.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/client.h&gt;
+
+    pluton::client C;
+
+    const char*  C.getAPIVersion();
+</pre>
+
+<p>
+
+<h4><a name=setDebug>pluton::client::setDebug()</h4>
+
+Turn on or off various debugging output produced by the client
+API. This is primarily for debugging purposes by the author and is
+unlikely to produce enlightening output for the typically client
+application.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/client.h&gt;
+
+    pluton::client C;
+
+    C.setDebug(bool trueOrFalse);
+</pre>
+
+<h5>PARAMETERS</h5>
+
+<table border=1>
+<tr><th>Name<th>Description</tr>
+
+<tr valign=top><td>trueOrFalse<td>If <code>true</code>, turn on the debugging output,
+otherwise turn it off.</tr>
+
+</table>
+
+<h4><a name=clientHasFault>pluton::client::hasFault()</h4>
+
+This method indicates that the <code>pluton::client</code> object has
+a <a href=fault.html><code>pluton::fault</code></a> object available with a fault condition
+from the previous call to <code>pluton::client</code>.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/client.h&gt;
+
+    pluton::client C;
+
+    bool C.hasFault();
+</pre>
+
+<h5>RETURN VALUE</h5>
+
+Return <code>true</code> if there is a
+<a href=fault.html><code>pluton::fault</code></a>
+object available
+with fault data associated with the last call made to
+<code>pluton::client</code>.
+
+<p>
+Return <code>false</code> if the last call to
+<code>pluton::client</code> did not have a fault.
+<p>
+
+<h4><a name=clientGetFault>pluton::client::getFault()</h4>
+
+In the interest of maximizing the amount of diagnostic information
+available, the <code>pluton::client</code> provides access to a
+<a href=fault.html><code>pluton::fault</code></a>
+instance which contains extensive
+information relating to a call which returned a fault indication.
+
+<p>
+Whenever a <code>pluton::client</code> method indicates a failure, a
+caller can access the
+<a href=fault.html><code>pluton::fault</code></a>
+instance to gain
+access to details of the reason for the failure. The
+<a href=fault.html><code>pluton::fault</code></a>
+object is valid if indicated by
+<a href=#clientHasFault><code>pluton::client::hasFault()</code></a>.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/client.h&gt;
+
+    pluton::client C;
+
+    const <a href=fault.html>pluton::fault</a>& C.getFault();
+</pre>
+<h5>RETURN VALUE</h5>
+
+Return a C++ reference to a
+<a href=fault.html><code>pluton::fault</code></a>
+instance corresponding to this <code>pluton::client</code></a>.
+<p>
+
+
+<a name=clientRequest>
+<h3><a name=preparing>Preparing Requests</h3>
+
+Each request is contained in
+unique <code>pluton::clientRequest</code> object. These objects hold
+the request data and attributes and are used to access the response
+from the service.
+
+Prior to adding a <code>pluton::clientRequest</code> to the
+<code>pluton::client</code> execution queue, it needs to be prepared with
+request information and attributes.
+
+<p>Once data and attributes are set for a request, they remain intact
+across all other calls. The only time user-supplied settings change
+is due to explicit calls by the caller.
+<p>
+All <code>pluton::clientRequest</code> objects are constructed and
+allocated by the callers to pass into <code>pluton::client</code>.
+The <code>pluton::clientRequest</code> is purposely defined so the
+caller can safely sub-class it if they need to associate additional
+data with each request, such as pointers back to client structures.
+
+<p>It is the responsibility of the caller to
+  release <code>pluton::clientRequest</code> objects once they are no
+  longer needed. The client library never releases resources created
+  by the caller.
+
+<h4><a name=requestReset>pluton::clientRequest::reset()</h4>
+
+This method returns a <code>pluton::clientRequest</code> object to the
+same state as when it is first constructed. Typically this method is
+used when a <code>pluton::clientRequest</code> is retained and re-used
+across multiple requests.
+
+<p>In addition to
+reseting all internal structures, this method removes
+the request from the <code>pluton::client</code> 
+object if it has been added but not yet returned to the caller by one of the
+<code>pluton::client::executeAndWait*()</code> methods.
+
+<p>In summary, reseting a request initializes:
+<ul>
+<li>Context
+<li>Request Data
+<li>Response Data
+<li>Fault information
+<li>Timeout information
+<li>Attributes
+<li>Service Key
+<li>Affinity Settings
+<li>Client Handle
+</ul>
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/client.h&gt;
+
+    pluton::clientRequest R;
+
+    void R.reset();
+</pre>
+
+<p>
+
+<h4><a name=setRequestData>pluton::client::setRequestData()</h4>
+
+Provide the data location for the request. No validation of the data
+is made by the <code>pluton::client</code> or the
+<code>pluton::service</code> APIs and this data is transferred
+transparently to the service. requestData is a blob of binary as far
+as the client API is concerned.
+
+<p>
+<code>pluton::client</code> does not actually copy the data provided
+by this call, instead it is transferred directly to the service once
+one of the <code>executeAndWait*</code> family of methods is
+called. It is the responsibility of the caller to ensure the supplied
+parameters remain valid until the request has completed.
+
+<p>For efficiency and data-independence reasons, the first method is the
+preferred method.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/client.h&gt;
+
+    pluton::clientRequest R;
+
+    void R.setRequestData(const char* requestPointer, int requestLength); // Can be binary content
+</pre>
+or
+<pre>
+    void R.setRequestData(const char* requestPointer);		// Expects a C-string
+</pre>
+
+and
+<pre>
+    #include &lt;string&gt;
+    void R.setRequestData(const std::string& request);		// Can be binary content
+</pre>
+
+<h5>PARAMETERS</h5>
+
+
+<table border=1>
+<tr><th>Name<th>Description</tr>
+
+<tr valign=top><td>requestPointer<td>A pointer to the request data.
+
+<p>When using the method with a <code>requestLength</code> parameter,
+there are no constraints on the content of the data.  If the data is
+text, it should be encoded in UTF-8 or similar but it also
+may be binary data. The type of data is however, entirely a function
+of the agreed-upon serialization between the client and service.
+
+<p>When using the method <em>without</em> a <code>requestLength</code>
+parameter, the library assumes a \0 terminated C-string amenable to
+<code>strlen()</code>.
+
+<p>
+The program must not modify the data pointed to by <code>requestPointer</code>
+until after the request has completed otherwise results
+are guaranteed to be undefined and unpleasant.</tr>
+
+</tr>
+
+<tr valign=top><td>requestLength<td>The number of bytes in the request</tr>
+
+<tr valign=top><td>requestData<td>A convenience interface: The
+<code>data()</code> and <code>length()</code> methods are used as the
+<code>requestPointer</code> and <code>requestLength</code>.
+<p>You must
+not modify the <code>std::string</code> until after the request has completed.</tr>
+
+</table>
+
+<p>
+
+<h4><a name=setContext>pluton::clientRequest::setContext()</h4>
+
+While the format of request and response data is completely unknown to
+the Pluton Framework - much as a shell is oblivious to the content
+passed through pipes it creates - <code>context</code> <i>is</i> known
+to the Pluton Framework and is akin to environment variables in the
+shell.
+
+<p><code>getContext()</code> on the service side and
+<code>setContext()</code> on the client side are almost identical in
+syntax and semantics to the C-library functions <code>getenv()</code>
+and <code>setenv()</code> respectively. In essence, the
+<code>context</code> methods manage a set of name/value pairs which are
+expected to be common across all serialization types.
+
+<p>The context name-space is not currently defined with the exception
+that names beginning with "pluton." are reserved and cannot be set by
+clients. It is expected that early adopters will help define the
+name-space as necessary.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;string&gt;
+    #include &lt;pluton/client.h&gt;
+
+    pluton::clientRequest R;
+
+    bool R.setContext(const char* key, const std::string& value);
+
+</pre>
+
+<h5>PARAMETERS</h5>
+
+<table border=1>
+<tr><th>Name<th>Description</tr>
+<tr valign=top><td>key<td>The name of the context to set. This is a \0 terminated
+C-string and should be constrained to ASCII.
+</tr>
+
+<tr valign=top><td>value<td>The value to associate with the name.</tr>
+</table>
+
+<h5>RETURN VALUE</h5>
+
+Returns <code>true</code> if name is set successfully, otherwise
+<code>false</code> is returned. <code>False</code> is returned if the
+caller attempts to set a key in protected namespace. If a
+<code>key</code> is already set, the value is replaced with
+<code>value</code>.
+
+
+<h4><a name=setAttribute>pluton::clientRequest::setAttribute()</h4>
+
+Each request can have a number of attributes set which influence the
+way the request is processed such as whether to attempt automatic
+retries. This method enables those attributes.
+
+<p>Once an attribute is set for a request, it remains set unless
+specifically cleared with
+<code>pluton::clientRequest::clearAttribute</code> or <code>pluton::clientRequest::reset</code>
+is called.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/client.h&gt;
+
+    pluton::clientRequest R;
+
+    void R.setAttribute(attribute);
+</pre>
+
+<h5>PARAMETERS</h5>
+
+<table border=1>
+<tr><th>Attribute<th>Description</tr>
+
+<tr valign=top><td><a name=noWaitAttr>pluton::noWaitAttr<td>Only wait until the
+request has be received by the service, do not wait for the
+response. A request which is successfully sent will have a zero-length
+responseData and a <code>pluton::noFault</code> fault code.</tr>
+
+<tr valign=top><td><a name=noRemoteAttr>pluton::noRemoteAttr<td>Instruct the
+pluton proxy commands that this request cannot leave the local system.
+
+<p>Support of this option is a
+function of the proxy command being run in the local service. This
+option may not be honored by a non-conforming proxy.
+
+<p>It is important to realize that this option only applies to the
+executable code of the service, not to whether that service makes any
+remote connections in the course of processing a request. The main
+purpose of this attribute is for clients and services which use an
+out-of-band, on-system mechanism to exchange additional data, such as
+a file in the local file system.
+
+</tr>
+
+
+<tr valign=top><td><a name=noRetryAttr>pluton::noRetryAttr<td>Do not
+automatically retry this request on failure.
+<p>
+Based on the service configuration, the client API normally attempts
+at least one retry of a requests if it fails for non-service based
+reasons, such as lost of network connection. The rationale is that it
+is better for a consistent retry strategy to be embedded within the
+client API rather than have each caller worry about it.
+
+<tr valign=top><td><a name=keepAffinityAttr>pluton::keepAffinityAttr<td>
+Retain the connection associated with this request so the next
+request will be sent to the same service instance.
+
+<p>Affinity connection are not retained indefinitely and callers
+are encouraged to minimize the use and duration of affinity
+connections so service instances are available as much as
+possible to other requests.
+
+<tr valign=top><td><a name=needAffinityAttr>pluton::needAffinityAttr<td>
+Only allow the request to proceed if it has a persistent connection
+due to the previous <em>successful</em>request having
+<code>pluton::keepAffinityAttr</code> set.
+A fault is returned if the request does not have an affinity
+connection. If this request results in a fault, then the affinity
+connection is <em>not</em> retained.
+<p>
+Affinity is maintained within the <code>pluton::clientRequest</code>
+instance, so the normal use of affinity across requests is to re-use
+the <code>pluton::clientRequest</code>, setting the attributes as
+needed. On the first affinity request, set <code>keepAffinityAttr</code>;
+on second and subsequent affinity requests, set
+<code>needAffinityAttr</code> and on the last request, clear the
+<code>keepAffinityAttr</code> attribute.
+
+</tr>
+
+</table>
+
+<p>
+
+<h4><a name=getAttribute>pluton::client::getAttribute()</h4>
+
+Indicate whether particular attributes are set for a request.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/client.h&gt;
+
+    pluton::clientRequest R;
+
+    bool R.getAttribute(attributes);
+</pre>
+
+<h5>PARAMETERS</h5>
+
+<table border=1>
+<tr valign=top><td>attributes<td>Any of the attributes which can be set via
+<a
+href=#setAttribute><code>pluton::clientRequest::setAttribute()</code></a>.
+
+<p>Multiple attributes can be tested by logically <em>OR-ing</em> the
+ attributes.
+</table>
+
+<h5>RETURN VALUE</h5>
+
+<code>True</code> if <em>all</em> supplied attributes are set in the request,
+otherwise <code>false</code> is returned.
+<p>
+
+<h4><a name=clearAttribute>pluton::client::clearAttribute()</h4>
+
+Turn off request attributes previously set by
+<code>pluton::client::setAttribute()</code>.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/client.h&gt;
+
+    pluton::clientRequest R;
+
+    void R.clearAttribute(attributes);
+</pre>
+
+<h5>PARAMETERS</h5>
+
+<table border=1>
+<tr valign=top><td>attributes<td>Any of the attributes which can be set via
+<a
+href=#setAttribute><code>pluton::clientRequest::setAttribute()</code></a>.
+
+<p>Multiple attributes can be cleared by logically <em>OR-ing</em> the
+ attributes.
+
+</table>
+
+
+<h4><a name=setClientHandle>pluton::clientRequest::setClientHandle()</h4>
+
+A caller can set and get an arbitrary value in a clientRequest. No
+semantics are associated with this value, it is provided as a
+convenience which is likely to be of most use in conjunction with the
+<code>pluton::client::executeAndWaitAny()</code> method.
+
+<p>This method always works regardless of the state of the request.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/client.h&gt;
+
+    pluton::clientRequest R;
+
+    void R.setClientHandle(void* handle);
+</pre>
+
+<h5>PARAMETERS</h5>
+
+<table border=1>
+<tr valign=top><td>handle<td>An arbitrary value
+</table>
+
+<p>
+
+<h4><a name=getClientHandle>pluton::clientRequest::getClientHandle()</h4>
+
+Return the handle previous set with
+<code>pluton::client::setClientHandle()</code> for this request.
+
+<p>This method always works regardless of the state of the request.
+
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/client.h&gt;
+
+    pluton::clientRequest R;
+
+    void* R.getClientHandle();
+</pre>
+
+<h5>RETURN VALUE</h5>
+
+Your handle.
+<p>
+
+<h4><a name=addRequest>pluton::client::addRequest()</h4>
+
+After preparing a request with <code>setRequestData()</code> and
+possibly setting attributes with <code>setAttribute</code>, the
+request is ready to be added to the <code>pluton::client</code>
+execution queue with
+the <code>addRequest()</code> method.
+
+<p>Once a request has been added to the queue, it must not be changed
+in any way by the client until after the client knows the request has
+completed. Adding requests to the <code>pluton::client</code> queue
+does nothing more than inform <code>pluton::client</code> of the
+existence of this request. Requests are not exchanged by calls to this
+method, only the <code>pluton::client::executeAndWait*</code> family
+of methods perform this function.
+
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/client.h&gt;
+
+    pluton::client C;
+    pluton::clientRequest R;
+
+    bool C.addRequest(const char* serviceKey, R&);
+    bool C.addRequest(const char* serviceKey, R*);
+</pre>
+
+<h5>PARAMETERS</h5>
+
+<table border=1>
+<tr><th>Name<th>Description</tr>
+
+<tr valign=top><td>serviceKey<td>The C-string containing the name of the service to send the request to
+in the <code>Application.Function.Version.Serialization</code>
+format.</tr>
+
+<tr valign=top><td>R<td>The request to be added
+to the execution queue.
+<p>You must not change the request or the requestdata it refers
+to until after completion of the request otherwise results
+are guaranteed to be undefined and unpleasant.</tr>
+
+</table>
+
+<h5>RETURN VALUE</h5>
+
+Return <code>true</code> if the request is added to the queue,
+otherwise <code>false</code> is returned. If the add fails, the
+request is set with a fault code and detailed fault information is
+available via
+<a href=#clientGetFault><code>pluton::client::getFault()</code></a>.
+
+<h3><a name=exchanging>Exchanging Queued Requests and waiting for
+completion</h3>
+
+Once requests have been added to the <code>pluton::client</code>
+execution queue, they are ready for exchange with services. The
+various <code>pluton::client::executeAndWait*</code> family of methods
+initiate the exchange of all queued requests and continue the
+exchange until either the wait condition has been met, or the timeout
+limit for the <code>pluton::client</code> has been reached.
+
+<p>The <code>pluton::client</code> queue is implemented as a singleton
+so multiple instances of <code>pluton::client</code> in different
+parts of the client program are actually all adding requests to a
+single internal queue. When one of the
+<code>pluton::client::executeAndWait*</code> family of methods initiate the service
+exchanges, it does so for every request in the queue, however the wait
+function is only performed on the requests associated with the
+particular <code>pluton::client</code> instance involved in the method
+calls.
+
+<p>The <code>executeAndWait*</code> family of methods are provided to
+give the client flexibility in how and what they can wait for. For
+example the <code>executeAndWaitOne</code> method waits for completion
+of the supplied request. While waiting for this request, other
+requests are exchanged and could complete prior to the one being
+waited on. The point being that a client can have no expectation about
+which requests will complete in what order.
+
+<p>Requests with the <code>pluton::noWaitAttr</code> attribute set are
+considered as complete by all wait methods once the request has been sent
+to the service.
+
+<p>Wait conditions are minimum conditions, which means it is
+entirely possible that some requests may have progressed beyond the
+wait condition. All a caller can be certain of is that their wait
+condition has been met or exceeded.
+
+<p>The timeout clock starts with the first call to any of the
+<code>executeAndWait*</code> methods and stops when the last request
+is completed or the timeout occurs. Any requests that are added
+between these two points in time inherit the timeout clock that has
+already started. The implication is that all requests added at any
+time in between these two points will all time out at the same
+time. This is believed to be a feature.
+
+<h4>Request Completion</h4>
+
+Once a request is added to the execution queue, it remains on the queue
+until:
+
+<ul>
+<li>a successful <code>executeAndWait*</code> call which includes
+the <em>completed</em> request or
+<li>One of the <code>pluton::client</code> or
+<code>pluton::clientRequest</code> objects are destroyed or
+<li>the <code>pluton::client::reset()</code> method is called.
+</ul>
+
+<p>The term <em>completed request</em> needs to be treated with care. It does
+not mean successful completion; rather it means the exchange with
+the service is complete and either a fault or response data is now
+available.
+
+<h4><a
+name=executeAndWaitSent>pluton::clientRequest::executeAndWaitSent()</h4>
+
+This method waits until all requests for the associated
+<code>pluton::client</code> have been sent at least once to their
+respective service. This method is useful if the application can
+perform some other function while the services are processing the
+requests.
+
+<p>Note Well: This <code>executeAndWait*</code> call is different from
+all others in that the request is not completed by this call. After
+calling <code>executeAndWaitSent()</code>, the caller must call one of
+the other <code>executeAndWait*</code> methods to complete the service
+request.
+
+<p>The definition of <i>sent</i> from the perspective of this call is
+that all of the request data has been given to the OS for transport
+to the service and that no more action is required by the client
+library for that to complete. In other words, <i>sent</i> is true as
+soon as possible.
+
+<p>Depending on the service configuration, it is possible that a
+request can fail and be retried. The implication is that a caller
+cannot assume there will be no further delays due to the cost of
+sending outstanding requests.
+
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/client.h&gt;
+
+    pluton::client C;
+
+    int C.executeAndWaitSent();
+</pre>
+
+<h5>RETURN VALUE</h5>
+
+<table border=1>
+<tr><th>Return Status<th>Meaning</tr>
+
+<tr valign=top><td>&lt; 0<td>Unexpected system error - consult
+<a href=#clientGetFault><code>pluton::client::getFault()</code></a>
+</tr>
+<tr valign=top><td>0<td>Timeout</tr>
+<tr valign=top><td>&gt; 0<td>All queued requests have been sent to their service</tr>
+</table>
+
+<p>
+
+<h4><a
+name=executeAndWaitAll>pluton::clientRequest::executeAndWaitAll()</h4>
+
+This method waits until all queued requests for the associated
+<code>pluton::client</code> have completed. On return all queued
+request have been explicitly waited on. This call is analogous to
+calling <pluton::clientRequest::executeAndWaitOne()</code> on every
+request queued with that <code>pluton::client</code> instance.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/client.h&gt;
+
+    pluton::client C;
+
+    int C.executeAndWaitAll();
+</pre>
+
+<h5>RETURN VALUE</h5>
+
+<table border=1>
+<tr><th>Return Status<th>Meaning</tr>
+
+<tr valign=top><td>&lt; 0<td>Unexpected system error - consult
+<a href=#clientGetFault><code>pluton::client::getFault()</code></a>
+</tr>
+
+<tr valign=top><td>0<td>Timeout</tr>
+
+<tr valign=top><td>&gt; 0<td>All queued requests have completed</tr>
+
+</table>
+
+<p>
+
+<h4><a name=executeAndWaitAny>pluton::clientRequest::executeAndWaitAny()</h4>
+
+This method waits until any request has completed.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/client.h&gt;
+
+    pluton::client C;
+
+    pluton::clientRequest* request C.executeAndWaitAny();
+</pre>
+
+<h5>RETURN VALUE</h5>
+
+A pointer to the completed request, otherwise NULL is
+returned indicating a fault - consult
+<a href=#clientGetFault><code>pluton::client::getFault()</code></a>.
+
+
+<p>
+
+<h4><a
+name=executeAndWaitOne>pluton::clientRequest::executeAndWaitOne()</h4>
+
+Wait for the specific request to complete.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/client.h&gt;
+
+    pluton::client C;
+
+    int C.executeAndWaitOne(pluton::clientRequest& R);
+    int C.executeAndWaitOne(pluton::clientRequest* R);
+</pre>
+
+<h5>PARAMETERS</h5>
+
+<table border=1>
+<tr><th>Name<th>Description</tr>
+<tr valign=top><td>R<td>The request to wait for completion. This request must
+be on the execute list by way of the 
+<code>pluton::client::addRequest()</code> and must not have been
+completed
+by  any of the <code>executeAndWait*()</code> family of calls.
+<p>
+If this request has
+the <code>pluton::noWaitAttr</code> set, then completion is considered
+to be when the request has been sent to the service.</tr>
+</table>
+
+<h5>RETURN VALUE</h5>
+
+<table border=1>
+<tr><th>Return Status<th>Meaning</tr>
+
+<tr valign=top><td>&lt; 0<td>Unexpected system error - consult
+<a href=#clientGetFault><code>pluton::client::getFault()</code></a>
+</tr>
+
+<tr valign=top><td>0<td>Timeout</tr>
+
+<tr valign=top><td>&gt; 0<td>The request completed</tr>
+
+</table>
+
+<p>
+
+<h3><a name=interpretingRequests>Interpreting Request Results</h3>
+
+Naturally once requests have completed, the client will want to
+examine the outcome of those requests. It is important to remember
+that requests should not be examined or modified in any way once the
+request has been added to the execution list by
+<code>pluton::client::addRequest()</code> as all contents are
+unreliable and likely to change until the request has been processed.
+
+<p>One important exception to this warning is that the caller can call
+<code>pluton::clientRequest::inProgress()</code> at any time to
+determine whether the processing for that request has completed. When
+a request is no longer <i>inProgress</i> and returned via
+one of the <code>pluton::client::executeAndWait*()</code> methods, all other
+<code>pluton::clientRequest</code> methods can be
+used. The only other exception is that both
+<code>pluton::clientRequest::setClientHandle()</code> and
+<code>pluton::clientRequest::getClientHandle()</code> can safely be used at
+any time.
+
+<h4><a name=getResponseData>pluton::clientRequest::getResponseData()</h4>
+
+If a request has completed according to
+<code>pluton::clientRequest::inProgress()</code> and the faultCode
+equals <code>pluton::noFault</code>, then
+<code>getResponseData()</code> returns access parameters to the
+response data. Validating the response data - including checking for
+legitimate serialization - is entirely a matter for the client.
+<p>
+This method is expected to be the one most clients will use when
+examining a response as it provides the fault and response data in one
+convenient call.
+<p>
+There is no practical constraint on the size of a response, the
+ultimate limit is imposed on the process by the operating system.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/client.h&gt;
+
+    pluton::clientRequest R;
+
+    pluton::faultCode R.getResponseData(const char*& responsePointer, int& responseLength) const;
+</pre>
+and
+<pre>
+    #include &lt;string&gt;
+    pluton::faultCode R.getResponseData(std::string& responseData) const;
+</pre>
+
+<h5>PARAMETERS</h5>
+
+<table border=1>
+<tr><th>Name<th>Description</tr>
+
+<tr valign=top><td>responsePointer<td>A reference to a pointer set to the address
+of the response data. responsePointer points to an internal
+<code>pluton::clientRequest</code> data structure which exists up to
+the next <code>getRequest()</code> or destruction of the
+<code>pluton::clientRequest</code> object.
+
+<p>There are no constraints on the content of this data, though it
+should almost always be UTF-8. The service defines the content and
+some services may return binary data and should program
+accordingly.</tr>
+
+<tr valign=top><td>responseLength<td>The number of bytes pointed at by
+responsePointer. If the faultCode is anything other than
+<code>pluton::noFault</code>, responseLength is set to zero. This does
+<i>not</i> mean that a responseLength of zero implies a fault as a
+service can legitimately send a zero length response.</tr>
+
+<tr valign=top><td>responseData<td>A convenience interface: the response data is
+copied into the <code>std::string</code> which protects the caller from the
+ephemeral nature of <code>responsePointer</code></tr>
+
+</table>
+
+<h5>RETURN VALUE</h5>
+
+The <code>pluton::faultCode</code> of this request. If not equal to
+<code>pluton::noFault</code> then <code>requestPointer</code> and
+<code>requestLength</code> define the response data sent by the
+service.
+
+
+<H5>DESCRIPTION</h5>
+
+The first, and preferred version of <code>getresponseData()</code>
+returns access parameters to the response data sent by the service. In
+the interest of minimizing the number of data copies - particularly
+for large responses - this interface lets the caller decide whether to
+copy the response into a std::string or some other structure of the
+caller's choosing.
+
+<p>
+If you are enamored with the convenience of <code>std::string</code>,
+the second version of <code>getResponseData()</code> copies the response
+data into the provided <code>std::string</code>.
+
+<p>
+While the second version may prove convenient, you may find that such
+copies are often not necessary as the caller can safely refer to the
+response data while the <code>pluton::clientRequest</code> exists and
+is not re-used.
+
+<p><b>NOTE WELL:</b> the access parameters do invalidate. If you have
+any doubt about the flow of your program, the std::string interface
+should be preferred as being much more resilient, albeit slower due to
+the data copy.
+
+<p>
+
+<h4><a name=getFault>pluton::clientRequest::getFault()</h4>
+
+Returns fault information. This call is valid regardless of whether
+there is a fault according to
+<code>pluton::clientRequest::hasFault()</code>, however the caller
+needs to check for a faultCode of <code>pluton::noFault</code> to
+determine whether the request returned with a fault or not.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;string&gt;
+    #include &lt;pluton/client.h&gt;
+
+    pluton::clientRequest R;
+
+    int R.getFault(std::string& faultText);
+</pre>
+
+<h5>PARAMETERS</h5>
+
+<table border=1>
+<tr><th>Name<th>Description</tr>
+<tr valign=top><td>faultText<td>The text of the fault of faultCode is not equal
+to <code>pluton::noFault</code></tr>
+</table>
+
+<h5>RETURN VALUE</h5>
+
+The faultCode. Note this could be <code>pluton::noFault</code> which
+indicates the request does not have a fault. Second note, do not
+assume <code>pluton::noFault</code> has a value of zero; please test
+for this value explicitly.
+
+<p>
+
+<h4><a name=getFaultCode>pluton::clientRequest::getFaultCode()</h4>
+
+A convenience method - return just the faultCode of the request.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/client.h&gt;
+
+    pluton::clientRequest R;
+
+    int R.getFaultCode();
+</pre>
+
+<h5>RETURN VALUE</h5>
+
+As per <code>getFault()</code>.
+
+<p>
+
+<h4><a name=getFaultText>pluton::clientRequest::getFaultText()</h4>
+
+A convenience method - return just the faultText of the request.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;string&gt;
+    #include &lt;pluton/client.h&gt;
+
+    pluton::clientRequest R;
+
+    std::string R.getFaultText();
+</pre>
+
+<h5>RETURN VALUE</h5>
+
+The text of the fault as per <code>pluton::clientRequest::getFault()</code>.
+
+<h4><a name=hasFault>pluton::clientRequest::hasFault()</h4>
+
+A completed request returns either a fault or a response. The caller
+differentiates between the two with a call to
+<code>hasFault()</code>.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/client.h&gt;
+
+    pluton::clientRequest R;
+
+    bool R.hasFault();
+</pre>
+
+<h5>RETURN VALUE</h5>
+
+<code>True</code> if there is a fault otherwise <code>false</code> if
+requestData is available via <code>getRequestData()</code>.
+
+<p>
+
+<h4><a name=inProgress>pluton::clientRequest::inProgress()</h4>
+
+This method tells whether the exchange of the request with the service
+has completed and if the request is available for return by one of the
+<code>executeAndWait*</code> family. Only after a request has
+completed can the request be checked for a fault of other error
+indication.
+
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/client.h&gt;
+
+    pluton::clientRequest R;
+
+    bool R.inProgress();
+</pre>
+
+
+<h5>RETURN VALUE</h5>
+
+<code>True</code> if the <code>pluton::client</code> is still processing this
+request.
+
+<p>For a request which has the <code>pluton::noWaitAttr</code>
+attribute set, this method will return <code>true</code> once the request has been
+completely written to the service but no assumption can be made about
+whether the service has processed the request.
+
+<p>While this method returns <code>true</code>, no other
+<code>pluton::clientRequest</code> can be called as
+unpredictable results will occur.
+<p>
+
+<h4><a name=getServiceName>pluton::clientRequest::getServiceName()</h4>
+
+Return a string identifying the name of the service which processed the
+request. This name is based on the name supplied by the service plus
+additional data created by the service API. The returned data is
+suitable for logging and diagnostic information.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;string&gt;
+    #include &lt;pluton/client.h&gt;
+
+    pluton::clientRequest R;
+
+    std::string R.getServiceName();
+</pre>
+
+<h5>RETURN VALUE</h5>
+
+The text of the name of the service.
+
+
+<p>
+<hr>
+<font size=-1>
+$Id: clientAPI.html 263478 2009-12-01 23:09:11Z markd $
+&copy; Copyright Yahoo! Inc, 2007, 2008, 2009
+</font>
+</body>
+</html>

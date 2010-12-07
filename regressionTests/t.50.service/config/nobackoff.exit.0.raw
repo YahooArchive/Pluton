@@ -1,0 +1,2 @@
+exec platform-services/exit
+exec-failure-backoff 0

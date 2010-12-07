@@ -1,0 +1,540 @@
+<html>
+<head>
+<link rel="shortcut icon" href=images/pluto-symbol.jpg type="image/x-icon" />
+<title>
+The Pluton Framework: Commands
+</title>
+</head>
+
+<body>
+
+<center>
+<a href=index.html>
+<img height=100 src=images/pluto-charon.jpg ALT="[Pluto Charon Image]">
+</a>
+</center>
+
+<h2 align=center>The Pluton Framework: Commands</h2>
+
+There are a variety of commands associated with the Pluton
+Framework. Some are of particular use to developers and QA to send
+test requests to a service. The other commands are primarily useful
+for testing and administering the <code>plutonManager</code>.
+
+<h3>Table of Contents</h3>
+
+<table border=1>
+
+<tr><th align=left>Command<th align=left>Target User<th align=left>Description</tr>
+
+<tr valign=top><td><a href=#plPing>plPing</a><td>SysAdmin<td>Sends multiple,
+parallel <em>echo</em> requests to a service (typically <code>system.echo.0.raw</code>)
+</tr>
+
+<tr valign=top><td><a href=#plSend>plSend</a><td>Developer/<br>QA<td>Sends a
+user-controlled request to a service
+</tr>
+
+<tr valign=top><td><a href=#plVersion>plVersion</a><td>SysAdmin<td>Print out various version numbers
+of installed programs
+</tr>
+
+<tr valign=top><td><a
+href=#plLookup>plLookup</a><td>SysAdmin<td>Lookup a service name and output the
+path of the Rendezvous Socket
+</tr>
+
+<tr valign=top><td><a href=#plTest>plTest</a><td>Developer<td>Test a service program by
+running it and feeding STDIN as the request data
+</tr>
+
+<tr valign=top><td><a href=#plTransmitter>plTransmitter</a><td>Architect<td>Run as a service, this command
+relays requests to a remote server running <code>plReceiver</code>
+</tr>
+
+<tr valign=top><td><a href=#plReceiver>plReceiver</a><td>Architect<td>Accepts service requests sent by
+<code>plTransmiter</code> across the network and issues them locally, returning the
+results back to transmitting host
+</tr>
+
+<tr valign=top><td><a
+href=#plReloadManager>plReloadManager</a><td>SysAdmin/<br>Developer<td>Notify the
+plutonManager to scan the configuration directory for changes
+</tr>
+
+<tr valign=top><td><a
+href=#plNetStringGrep>plNetStringGrep</a><td>Developer<td>Read
+netStrings from STDIN and write matching types to STDOUT.
+</tr>
+
+</table>
+
+
+<h3><a name=plPing>plPing: Sends multiple, parallel <em>echo</em>
+requests to a service</h3>
+
+The <code>plPing</code> command is primarily intended to see whether the
+service infrastructure is running and how long a request takes to travel
+through the system. plPing is designed to work in conjunction with the
+<code>system.echo.0.raw</code> service.
+
+<h4>Usage</h4>
+
+<pre>
+Usage: plPing [-dhKkNnow] [-c count] [-C contextKey=contextValue] [-s packetsize]
+                          [-L lookupMap] [-p parallelCount] [-t timeout] [ServiceKey]
+
+Measure the response time of a pluton service
+
+Where:
+ -c   Stop after sending 'count' requests (default: infinite)
+ -C   Set context with this value (the normal echo service uses this
+       as a sleep value)
+ -d   Turn on debug
+ -h   Print this usage message on STDOUT and exit(0)
+ -i   Wait 'wait' seconds between requests (default: 1)
+       If set to zero, this is effectively a ping flood.
+ -K   Keep Affinity. Set the 'keepAffinityAttr' attribute
+ -k   Send echo a random die request
+ -L   The Lookup Map used to connect with the manager (default: '')
+ -N   Need Affinity. Set the 'needAffinityAttr' attribute
+ -n   Do *not* check the response for a valid echo
+ -o   Oneshot. Set the 'noRetryAttr' attribute
+ -p   Number of requests to send in parallel (default: 1)
+ -s   Size of random data to generate in the request (default: 0)
+ -t   Numbers of seconds to wait for a response (default: 5)
+ -w   NoWait. Set the 'noWaitAttr' attribute
+
+ ServiceKey: name of service to request (default: system.echo.0.raw)
+</pre>
+
+<p>
+<code>plPing</code> generates a random request string and sends it to
+the service identified by the <code>ServiceKey</code>. The size of the
+request string is defined with the <code>-s</code>
+option. <code>plPing</code> carefully times the request and produces
+latency reports for each request. These latency reports can be used to
+understand the latency costs of issuing requests. The latency report
+is oblivious to whether a request is relayed to a remote host or not,
+the report simply measures the elapse time taken between making the
+request and getting a response.
+
+<p>
+<code>plPing</code> is designed to work with the
+<code>system.echo.0.raw</code> service and it expects the service to
+send response data that is exactly the same as the request
+data. <code>plPing</code> checks the response data to ensure that it
+has been returned exactly as sent. This response data comparison is,
+in effect, testing that data encapsulation and exchange through the
+system is working properly.
+
+<p>
+The <code>-s</code> option can be used to vary the size of the request
+and thus measure the latency of the request as the size changes.
+<p>
+The <code>-p</code> option is used to initiate multiple requests in
+parallel and thus exercise and test the parallel aspects of the
+framework.
+
+<p>
+Example:
+<p>
+Send a single request to the <code>system.echo.0.raw</code> service
+and print out the elapse time required to exchange that request.
+
+<pre>
+ $ plPing -c1
+</pre>
+
+<h3><a name=plSend>plSend: Send a request and output the response</h3>
+
+The <code>plSend</code> sends user supplied request data to a
+nominated service. This program is intended as a convenient tool to
+test a service.
+
+<h4>Usage</h4>
+
+<pre>
+Usage: plSend [-edhno] [-L lookupMap] [-C name=context .. ]
+              [-t timeoutSeconds] ServiceKey [requestString]
+
+Exchange a single request with a pluton service. Print the resulting data
+to STDOUT and exit(0) on a successful request, otherwise print the fault
+information to STDERR and exit(1).
+
+ -C   Set the context for this request - multiple occurrences ok
+ -d   Turn on pluton::client debugging
+ -e   Print elapse time of the request to STDERR
+ -h   Print this usage message on STDOUT and exit(0)
+ -L   The Lookup Map used to connect with the manager (default: '')
+ -n   Append a Newline to the output
+ -o   Oneshot. Set the 'noRetryAttr' attribute
+ -t   Change the request timeout to 'timeoutSeconds'
+
+ ServiceKey: name of service to request (default: system.echo.0.raw)
+
+ requestString: if present, place this in the requestData. If not present
+ read STDIN for the requestData.
+</pre>
+
+<p>
+Examples:
+<p>
+Send "Hello World" as the request data with context to
+<code>system.echo.0.raw</code> that causes it to sleep for 500
+milliseconds.
+
+<pre>
+ $ plSend -C echo.sleepMS=500 system.echo.0.raw "Hello World"
+</pre>
+
+<p>
+Send a pre-constructed request in the "listfolderrequest" file to the
+<code>Mail.Folder..XML</code> service and write the response data into
+the file "response.data".
+
+<pre>
+ $ plSend Mail.Folder..XML &lt;listfolderrequest &gt;results.data
+</pre>
+
+<h3><a name=plVersion>plVersion: Print out various version
+numbers</h3>
+
+The <code>plVersion</code> command simply prints various versions
+numbers associated with the compiled version stamps. It's intended as
+a diagnostic tool.
+
+<h4>Usage</h4>
+
+<pre>
+Usage: plVersion [-h]
+
+Print out Pluton versions and other static values
+
+ -h   Print this usage message on STDOUT and exit(0)
+</pre>
+
+<h4>Sample Output:</h4>
+<pre>
+$ plVersion
+plutonManager: $Revision: 260483 $ $Date: 2009-10-16 11:47:56 -0700 (Fri, 16 Oct 2009) $ $Author: markd $ Comp:Mar  8 2007
+clientAPI: $Revision: 260483 $ $Date: 2009-10-16 11:47:56 -0700 (Fri, 16 Oct 2009) $ $Author: markd $ Comp:Mar  8 2007
+serviceAPI: $Revision: 260483 $ $Date: 2009-10-16 11:47:56 -0700 (Fri, 16 Oct 2009) $ $Author: markd $ Comp:Mar  8 2007
+Lookup Map: /usr/local/var/pluton/lookup.map
+shmLookupMapVersion: 1001
+shmServiceVersion: 2001
+</pre>
+
+
+<h3><a name=plLookup>plLookup: Lookup a service name and output the
+path of the Rendezvous Socket</h3>
+
+
+<h4>Usage</h4>
+
+<pre>
+Usage: plLookup [-dhq] [-t timeout] [-L lookupMap] [ServiceKeys...]
+
+Lookup each Service Key and return the path of the Rendezvous Socket
+
+Where:
+ -d   Turn on debug output
+ -h   Print this usage message on STDOUT and exit(0)
+ -q   Quiet Mode. Do not output the path.
+ -L   The Lookup Map used to connect with the manager (default: '')
+ -t   Numbers of seconds to keep looking if lookup fails (default: 0)
+       The intent of this option is to have plLookup wait until a
+       service configuration has been loaded by the Manager.
+</pre>
+
+<h4>Sample Output:</h4>
+<p>
+<pre>
+$ bin/plLookup -L lookup.map system.echo.0.raw
+Lookup Path: lookup.map
+system.echo.0.raw=system.raw.0.echo=/Users/markd/Projects/pluton/system.echo.0.raw.socket
+</pre>
+
+
+<h3><a name=plTest>plTest: Manually test a service program</h3>
+
+<p>
+The <code>plTest</code> command runs a service program independently
+of the <code>plutonManger</code> and sends a request based on data
+from STDIN. As the name implies, it provides a simple way of testing
+and debugging services. The response data from the service program is
+written to STDOUT and fault information is written to STDERR.
+
+<p><code>plTest</code> relies on the fact that service programs do not
+know whether they are run by the
+<code>plutonManger</code> of by <code>plTest</code>. In fact
+service programs should never attempt to detect the difference.
+
+<p><code>plTest</code> is convenient if you do not have pre-recorded
+request packets that you can supply via the file-descriptor-redirect
+method. It is also a convenient way of running a service program in a
+debugger such as <code>gdb</code>.
+
+<p>Finally, <code>plTest</code> can be used to generate request
+packets as demonstrated in the examples section. These request packets
+can be used with the file-descriptor-redirect method.
+
+<h4>Usage</h4>
+
+<pre>
+Usage: plTest [-hen]  [-C name=context .. ] [-K ServiceKey]
+              [-i filein] [ -o fileout]
+              -- [serviceExecutionPath [Arguments]]
+
+Generate a request and run the service using STDIN as the source of
+request data. Response Data is written to STDOUT.
+
+Where:
+ -C   Set the context for this request - multiple occurences ok
+ -h   Print this usage message on STDOUT and exit(0)
+ -e   Print Child Exit details
+ -i   Use this file as the request data instead of STDIN
+       Useful when running the service under gdb
+ -K   Define the serviceKey passed to the service in the
+       request (default: plTest.service.0.raw
+ -n   Append a Newline to the output
+ -o   Use this file to write the response data instead of STDOUT
+       Useful when running the service under gdb
+
+ ServiceKey: Place in request (default: plTest.service.0.raw)
+
+ServiceExecutionpath: Location of the service executable. If not
+supplied, the request packet is written to STDOUT and -o is ignored.
+
+Arguments: passed to the service executable via execvp()
+</pre>
+
+<h4>A note about testing scripting languages</h4>
+
+When using <code>plTest</code> with scripting languages such as perl
+and PHP, you need to actually invoke the interpreter as the executable
+or make your script into a <i>self-invoking executable</i> by 
+adding a <code>#!</code> line to the script and making it executable
+with <code>chmod</code>.
+
+<h4>Examples:</h4>
+
+These examples assume you have written a test service called <code>"yourservice"</code> and
+it resides in the current directory. A line beginning with a <code>$</code> indicates a shell
+prompt where you type in the command (without the dollar naturally).
+<p>
+1) To run <code>./yourservice</code> and send "Hello World" as the request data go:
+<p>
+<pre>
+$ echo Hello World | plTest ./yourservice
+</pre>
+
+<p>
+2) To run the <code>system.echo</code> service and set context variables.
+<p>
+<pre>
+$ plTest -Cecho.sleepMS=1000 -Cecho.log=y /usr/local/bin/system.echo.0.raw &lt;testfile
+</pre>
+
+<p>
+3) To run the <code>./yourservice</code> service program in
+<code>gdb</code>. Note the use of the <code>-i</code> and
+<code>-o</code> options to ensure that <code>gdb</code> has access to
+your tty.
+
+<pre>
+$ echo Hello World &gt;testfile
+$ plTest -i testfile gdb ./yourservice
+</pre>
+
+<p>
+4) Use <code>plTest</code> to generate a request packet by <i>not</i>
+supplying a <code>serviceExecutionPath</code> parameter, then use that
+request packet to run <code>./yourservice</code>.
+
+<pre>
+$ echo Hello World | plTest &gt;request.packet
+$ ./yourservice 3&lt;request.packet 4&gt;response.packet
+</pre>
+
+
+<p>
+5) Testing a php script.
+
+<pre>
+$ echo Hello World | plTest php yourservice.php
+</pre>
+
+<h3><a name=plTransmitter>plTransmitter: Relay service requests to a
+remote host</h3>
+
+<font color=red>Warning: This is an experimental command</font><p>
+
+The <code>plTransmitter</code> program runs as a service and relays
+local requests to remote hosts for execution. Typically
+<code>plTransmitter</code> will connect to a remote instance of
+<code>plReceiver</code>.
+
+<h4>Usage</h4>
+
+<pre>
+Usage: plTransmitter [-dhC] [-c connectsPerHost] [-l serviceLifeSecs]
+                     [-s maxRequestDurationSecs] hosts...
+
+Transmit Pluton Requests to plReceivers running on remote hosts
+
+Where:
+ -C   Connect to all resolved addresses immediately rather than on-demand
+
+ -c   Number of connections per resolved address per host (default: 1)
+ -d   Turn on debugging output
+ -h   Print this usage message on STDOUT and exit(0)
+ -l   The service should exit after this many seconds to enable a fresh
+       set of gethostbyname() results. Zero disables this feature
+       (default: 3600)
+ -s   Maximum seconds allowed per request (default: 30)
+
+ hosts are a list of hostname[:port] values that are resolved
+      with gethostbyname() (default port: 14099)
+</pre>
+
+
+<h3><a name=plReceiver>plReceiver: Accept relayed services from <code>plTransmitter</code></h3>
+
+<font color=red>Warning: This is an experimental command</font><p>
+
+The <code>plReceiver</code> program accepts service requests sent by
+<code>plTransmitter</code> and submits them as local requests.
+
+<h4>Usage</h4>
+
+<pre>
+Usage: plReceiver [-dh] [-a maxAccepts] [-k ServiceKey]
+                  [-l lookupMapPath] [-s maxRequestDurationSecs]
+                  [[Interface][:port]]
+
+Accept and submit Pluton Requests sent by remote plTransmitters
+
+Where:
+
+ -a   Maximum number of concurrent accepted requests (default: 10)
+ -d   Turn on debugging output
+ -h   Print this usage message on STDOUT and exit(0)
+ -k   Replace requested ServiceKey with this value. This is useful
+       when running plReceiver on the same system as plTransmitter.
+ -l   The Lookup Map used to connect to the local service (default: '')
+ -s   Maximum seconds allowed per request (default: 30)
+
+ Interface and Port define the listening address (default: localhost:14099)
+</pre>
+
+
+<h3><a name=plReloadManager>plReloadManager: Notify plutonManager to
+scan for configuration changes</h3>
+
+<p>
+The plutonManager is designed to accept configuration changes without
+disrupting existing service interactions. When notified by the
+<code>plReloadManager</code> command, the plutonManager scans the
+configuration direction and adds, deletes or reloads services as
+necessary, based on
+changes in that directory.
+
+<p>When testing for changes, the plutonManager only checks the
+files in the configuration directory, it does not check for changes to any
+associated executables or libraries that those executables might load.
+
+<p>The definition of changed is any one of:
+
+<ul>
+<li>date-time-modified is newer
+<li>File size has changed
+<li>Inode has changed
+
+</ul>
+
+<h4>Usage</h4>
+
+<pre>
+Usage: [sudo] plReloadManager [-a]
+
+Where:
+
+ -a   Reload all services regardless of whether their configuration file
+      has changed.
+</pre>
+
+<p>
+The plutonManager makes a concerted effort to shutdown existing
+services in the nicest possible way. In short, it lets services exit
+of their own accord by sending signals that start with a
+gentle <code><b>SIGTERM</b></code> and 
+escalate to an unavoidable <code><b>SIGKILL</b></code> if the service
+refuses to exit.
+
+<p>
+The net result of this gentleness is that you may have to wait some
+time before a newly installed service comes into effect. Over ten
+seconds in the worst case so please be patient.
+
+
+<h3><a name=plNetStringGrep>plNetStringGrep: Read netStrings from STDIN and write matching types to STDOUT</h3>
+
+<p>
+<code>plNetStringGrep</code> is a diagnostic program that can be used
+to selectively filter a netString based on the netString type. This
+comes in handy if you want to compare two netstrings - perhaps as part
+of a regression test - and you need to filter out variable but
+uninteresting data, such as process id or timestamps. This is a truly
+geeky tool.
+
+<h4>Usage</h4>
+
+<pre>
+Usage: plNetStringGrep [-hnv] [typeList]
+
+Read netStrings from STDIN and write matching types to STDOUT.
+
+ -h   Display usage and exit
+
+ -n   Convert the trailing netString terminator to a newline
+
+ -v   Invert the test and only output types that do not match.
+       This option is particularly useful for removing variable
+       valued netstrings - such as timestamps and process ids - to
+       simplify regression test comparisons.
+
+ typeList is a series of netString types to match. If not present
+ all types match.
+
+Examples:
+
+ $ plNetStringGrep aFnB: &lt;filein &gt;fileout
+
+      fileout only contains 'a', 'F', 'n', 'B' and ':' types.
+
+ $ plNetStringGrep -v aFnB: &lt;filein &gt;fileoutNot
+
+      fileoutNot contains everything not in fileout.
+
+ $ plNetStringGrep -v a &lt;results &gt;results.stripped
+ $ plNetStringGrep -v a &lt;expected | cmp -s - results.stripped
+ $ [ $? -ne 0 ] && echo Comparison failed
+
+      Remove the 'a' netString type and compare the rest with
+      a previously created regression comparison file to see
+      whether results have changed or not.
+
+If the input file does not contain a valid netString
+an error message is written to STDERR and the program exits.
+</pre>
+
+
+<p>
+<hr>
+<font size=-1>
+$Id: commands.html 260483 2009-10-16 18:47:56Z markd $
+&copy; Copyright Yahoo! Inc, 2007, 2008, 2009
+</font>
+</body>
+</html>

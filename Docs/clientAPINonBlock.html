@@ -1,0 +1,792 @@
+<html>
+<head>
+<link rel="shortcut icon" href=images/pluto-symbol.jpg type="image/x-icon" />
+<title>
+The Pluton Framework: Non-Blocking Client API
+</title>
+</head>
+
+<body>
+
+<center>
+<a href=index.html>
+<img height=100 src=images/pluto-charon.jpg ALT="[Pluto Charon Image]">
+</a>
+</center>
+
+<h2 align=center>The Pluton Framework: Non-Blocking Client API</h2>
+
+<h2>Introduction</h2>
+
+The blocking <a href=clientAPI.html>client API</a> is designed for
+simple, procedural programs that want to gain the benefits of parallel
+processing without having to resort to threads, I/O events,
+asynchronous I/O or other complex programming techniques.
+
+<p>
+However, the standard pluton client blocking APIs do not suit more
+complex programs that are non-blocking by design. Typically such
+non-blocking programs are written around asynchronous I/O event
+interfaces such as <code>poll()</code>, <code>select()</code> and
+<code>kqueue()</code> system calls. Alternatively, they use an
+asynchronous library that encapsulates these lower level interfaces.
+
+<p>Two notable and exceptional powerful asynchronous encapsulation
+libraries are <a href=http://state-threads.sourceforge.net/>State
+Threads</a> and
+<a href=http://monkey.org/~provos/libevent/>libevent</a>.
+
+<p>It is these two libraries that motivated the development of the
+non-blocking pluton interfaces described herein. While the non-blocking
+pluton client APIs are designed explicitly for use with both of these
+libraries, they are amenable to many other forms of non-blocking use
+as well.
+
+<p>
+The State Threads style of support is particularly simply and requires
+making just one additional initialization call to identify a proxy
+procedure for the <code>poll()</code> system call. Once the proxy is
+identified, the <a href=clientAPI.html>client API</a> is called in the
+usual way and reaps the benefits of the State Thread parallel I/O
+model.
+
+<p>
+The event style of support is more complicated as the interfaces
+have to exchange event requests and responses. Furthermore, the
+method by which completed requests are made available to the client
+are, by necessity, different as calls to the
+<code>pluton::client::executeAndWait*()</code> family are fundamentally
+incompatible with the event model.
+
+<h2>Table of Contents</h2>
+
+<ol>
+<li><a href=#stateThreads>State Threads</a> style of interface
+
+<ul>
+<li><a href=#setPollProxy><code>pluton::client::setPollProxy()</code></a>
+</ul>
+
+<p>
+<li><a href=#event>Event</a> Interface style
+
+<p>
+The event classes and methods are divided into three main areas:
+
+<ol>
+<p><li><a href=#threadInteraction>Interaction with threaded programs</a>
+<p><li><a href=#logicFlow>Typical logic flow</a>
+<p><li><a href=#construction>Construction and initialization</a>
+
+<ul>
+<li><a href=#clientEvent><code>pluton::clientEvent()</code></a> interface class
+<li><a
+href=clientAPI.html#initialize><code>pluton::client::initialize()</code></a>
+same as the blocking client API
+<li><a
+href=clientAPI.html#getAPIVersion><code>pluton::client::getAPIVersion()</code></a>
+same as the blocking client API
+
+<li><a href=clientAPI.html#setDebug><code>pluton::client::setDebug()</code></a>
+same as the blocking client API
+</ul>
+
+<p><li><a href=#exchangingRequests>Adding and removing requests</a> from the execution queue
+
+<ul>
+<li><a href=#addRequest><code>pluton::clientEvent::addRequest()</code></a>
+<li><a href=#getCompletedRequest><code>pluton::clientEvent::getCompletedRequest()</code></a>
+</ul>
+
+<p><li><a href=#exchangingEvents>Exchanging event</a> information
+
+<ul>
+<li><a href=#getNextEventWanted><code>pluton::clientEvent::getNextEventWanted()</code></a>
+<li><a href=#sendEvent><code>pluton::clientEvent::sendCanReadEvent()</code></a>
+<li><a href=#sendEvent><code>pluton::clientEvent::sendCanWriteEvent()</code></a>
+<li><a href=#sendEvent><code>pluton::clientEvent::sendTimeoutEvent()</code></a>
+</ul>
+
+<p><li>Interpreting Results use
+<a href=clientAPI.html#interpreting>identical methods</a>
+to the blocking client API excepting of course they
+are called via the <code>pluton::clientEvent</code> class.
+</ol>
+
+<p><li><a href=#sampleSelect>Sample program</a>
+    demonstrating <code>pluton::clientEvent</code> with <code>select()</code>
+</ol>
+
+<p>
+
+<h2><a name=stateThreads>State Threads style of interface</h2>
+
+The State Threads style of interface uses the
+blocking <a href=clientAPI.html#construction><code>pluton::client()</code></a>
+class in the usual way with just one additional initialization
+requirement and one application reentrancy constraint.
+
+<p>
+(A complete <a href=sampleProxyClient.cc.txt>sample program</a> is
+available for you to use as a template for getting started.)
+
+
+<h4>Additional Initialization Requirement</h4>
+<p>
+The one additional requirement is that the application must
+call <code>
+pluton::client::setPollProxy()
+</code> to identify the replacement method for
+the <code>poll(2)</code> system call used by the client
+library. Normally this will be <code>st_poll()</code> though
+alternatives are possible if the identified method has the same
+semantics.
+
+<p>
+A consequence of making the call to <code>
+pluton::client::setPollProxy()
+</code> is that instead of
+the <code>pluton::client::executeAndWait*()</code> family making
+calls to <code>poll(2)</code>, they call your supplied
+procedure which must implement the same semantics and interface signature
+as <code>st_poll()</code> (which is <em>almost</em> identical
+to <code>poll()</code>).
+
+<p>If you are actually using State Threads then the best proxy
+procedure to supply is obviously <code>st_poll()</code>. You are not
+bound to do this of course, but it is strongly recommended ... and
+it's easiest to do.
+
+
+
+<h4>Application Reentrancy Constraint</h4>
+
+The consequence of setting the <code>poll(2)</code> proxy method is
+that multiple State Threads can <i>enter</i> the client library
+concurrently. Ergo, the client library needs to be re-entrant safe.
+
+<p>It turns out that the client library <i>is</i> re-entrant safe, but
+only if the application follows the following rules:
+
+<ul>
+<li>Each thread <i>must</i> create and use its
+  own <code>pluton::client</code> object
+<li>Each thread <i>must</i> create and use its
+  own <code>pluton::clientRequest</code> objects.
+</ul>
+
+
+<h4><a name=setPollProxy>pluton::client::setPollProxy()</h4>
+
+This method identifies the procedure to use in place of the
+<code>poll(2)</code> system call normally used by the pluton client
+library.
+
+<p>The affect of this call is global (in spite of it being a
+  per-instance based call) so it applies to
+  all <code>pluton::client</code> objects in the program.
+
+ The call
+<i>should</i> be made prior to any other calls to the client library.
+
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/client.h&gt;
+
+    typedef int (*poll_handler_t)(struct pollfd *fds, int nfds, unsigned long long timeoutMicroSeconds);
+
+    pluton::poll_handler_t setPollProxy(pluton::poll_handler_t);
+
+</pre>
+
+The <code>poll_handler_t</code> typedef is defined in &lt;pluton/client.h&gt; and
+is shown here for discussion purposes. The signature of <code>poll_handler_t</code>
+is purposely identical to <code>st_poll()</code> so that the
+initialization can be as simple as:
+
+<p>
+<center>
+<table border=1>
+<td>
+<pre>
+#include &lt;st.h&gt;
+
+#include &lt;pluton/client.h&gt;
+
+st_init();			// Init state threads
+
+pluton::client	C;		// Create a base instance
+C.setPollProxy(st_poll);	// set the poll(2) replacement
+C.initialize();			// Init the pluton::client
+    ...
+</pre>
+</table>
+</center>
+
+<p>
+If you plan on providing a proxy procedure other than
+<code>st_poll()</code>, note carefully that the <code>timeout</code>
+parameter is an <code>unsigned long long</code> <em>microseconds</em>;
+consistent with <code>st_poll()</code> rather than an <code>int</code>
+milliseconds; consistent with <code>poll()</code>.
+
+<p>
+<table border=1>
+<tr><td>
+(It's an historical design accident, but the call to <code>
+pluton::client::setPollProxy()
+</code> is a per-instance call even though the effects are global. Once
+the <code>poll(2)</code> proxy has been identified it applies to
+<i>all</i> <code>pluton::client</code> instances - both existing and
+yet-to-be-created ones.. The method should have been defined as a
+static. Oh well.)
+</table>
+
+<h5>PARAMETERS</h5>
+
+<table border=1>
+<tr><th>Name<th>Description</tr>
+
+<tr><td>poll_handler_t<td>A procedure that accepts parameters
+identical to <code>st_poll()</code> and performs identical
+semantics. If NULL, revert to using the <code>poll(2)</code> system call.
+
+<tr><td>struct pollfd *fds<td>Identical to <code>poll(2)</code> and <code>st_poll()</code>.</tr>
+<tr><td>int nfds<td>Identical to <code>poll(2)</code> and <code>st_poll()</code>.</tr>
+<tr><td>timeout<td>Timeout in <em>microseconds</em>. This value will
+always be greater than zero.</tr>
+<tr><td>int return<td>Identical to <code>poll(2)</code> and <code>st_poll()</code>.</tr>
+
+
+</table>
+
+<p>
+<h5>RETURN VALUE</h5>
+
+Returns the previous <code>poll(2)</code> proxy procedure or NULL if
+none has been previously set.
+
+<h2><a name=event>Event Interface</h2>
+
+Supporting the event model familiar to those who use <a
+href=http://monkey.org/~provos/libevent/>libevent</a> requires a
+different interface to the procedural oriented one of state threads and
+the blocking client API.
+
+<p>In the event model, the application must exchange event requests
+and responses with the client API and test for completed requests. To
+ensure that there is no confusion between the procedure oriented,
+block-like interfaces, the event interface uses a different
+<code>#include</code> and a different class name to help protect
+against accidental mixing of the models.
+
+<p>Three key differences between this event interface and other
+  interfaces are:
+
+<ol>
+<li>The event interface <i>never</i> issues any I/O of any sort
+  without being assured that the request will not block
+<li>Each request is processed independently of other requests and has
+  its own timeout value
+<li>The event interface has been designed to work
+  for <a href=threading.html>threaded programs</a> with a modest set
+  of constraints
+</ol>
+
+<p>
+<h3><a name=threadInteraction>Interaction with threaded programs</h3>
+
+The Event Interface is designed to be compatible with threaded
+programs. As such, developers should read
+how <a href=threading.html>thread support</a> has been implemented in
+the pluton client library. Of particular interest are the
+<a href=threading.html#Rules>rules</a> regarding sharing objects
+between threads.
+
+<h3><a name=logicFlow>Typical logic flow</h3>
+
+Once requests have been added to the request queue, the general logic
+of a program using the event interface is to loop to:
+
+<ul>
+<li>Collect completed requests
+<li>Determine outstanding I/O requests needed by <code>pluton::clientEvent</code>
+<li>Issue system calls to determine which I/O requests have completed
+<li>Return completed events to <code>pluton::clientEvent</code>
+</ul>
+
+until all requests have completed or timed out.
+
+The key aspect of the event interface is that the caller gains control
+when <code>pluton::clientEvent</code> wants to block and the caller is
+then free to monitor other I/O requests besides those needed
+by <code>pluton::clientEvent</code>.
+
+<p>
+While much of the following discussion uses examples based on
+<a href=http://monkey.org/~provos/libevent/>libevent</a>, there is
+
+a <a href=#sampleSelect>sample program</a> that
+demonstrates <code>pluton::clientEvent</code> while also monitoring
+for input on stdin.
+
+<h3><a name=construction>Construction and initialization</h3>
+
+The event interface uses the
+<code>pluton::clientEvent</code> class in place of
+<code>pluton::client</code> blocking class. The
+<code>pluton::clientEvent</code> class replaces the
+the blocking <code>executeAndWait*</code> calls with event fetch and
+return calls.
+
+<h4><a name=clientEvent>pluton::clientEvent()</h4>
+
+Instantiates the object used to exchange events and requests with the
+pluton client API. This object must be initialized with
+<code>pluton::clientEvent::initialize()</code> prior to any other
+use.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/clientEvent.h&gt;
+
+    pluton::clientEvent(const char* yourName="");
+
+</pre>
+
+<h5>PARAMETERS</h5>
+
+<table border=1>
+<tr><th>Name<th>Description</tr>
+
+<tr><td>yourName<td>If present, a C-string used for logging and
+diagnostic purposes.</tr>
+
+</table>
+
+<h3><a name=exchangingRequests>Adding and removing requests from the execution queue</h3>
+
+Naturally, you will want to arrange for requests to be executed by
+<code>pluton::clientEvent</code>. There is just one method for adding
+requests and another to remove completed requests.
+
+<h4><a name=addRequest>pluton::clientEvent::addRequest()</h4>
+
+The interface and semantics of this method are identical to the
+blocking version of <a
+href=clientAPI.html#addRequest><code>pluton::client::addRequest()</code></a>
+with the addition of a timeout parameter. In the non-blocking API,
+each request is executed with an independent timeout. This differs
+from the blocking interface where all requests run with the same
+timeout that starts with a call to the
+<code>pluton::client::executeAndWait*()</code> family.
+
+<p>The timeout value given to
+<code>pluton::clientEvent::addRequest()</code> does not come into
+effect until the first event for that request has been provided to the
+caller via <code>pluton::clientEvent::getNextEventWanted()</code>.
+
+After preparing a request with <code>setRequestData()</code> and
+possibly setting attributes with <code>setAttribute</code>, the
+request is ready to be added to the <code>pluton::client</code>
+execution queue with
+the <code>addRequest()</code> method.
+
+<p>Once a request has been added to the queue, it must not be
+changed in any way by the client until after the request
+has completed. Adding requests to the <code>pluton::client</code>
+queue does nothing more than inform <code>pluton::client</code> of the
+existence of that request. Requests are not exchanged by calls to this
+method.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/clientEvent.h&gt;
+
+    pluton::clientEvent C;
+    pluton::clientRequest R;
+
+    bool C.addRequest(const char* serviceKey, R&, unsigned int timeoutMilliSeconds=4000);
+    bool C.addRequest(const char* serviceKey, R*, unsigned int timeoutMilliSeconds=4000);
+
+</pre>
+
+<h5>PARAMETERS</h5>
+
+
+<table border=1>
+<tr><th>Name<th>Description</tr>
+
+<tr><td>serviceKey<td>The C-string containing the name of the service to send the request to
+in the <code>Application.Function.Version.Serialization</code>
+format.</tr>
+
+<tr><td>R<td>The request to be added
+to the execution queue.
+<p>You must not change the request or the requestdata it refers
+to until after completion of the request otherwise results
+are guaranteed to be undefined and unpleasant.</tr>
+
+<tr><td>timeoutMilliseconds<td>The request will be available via
+<code>pluton::clientEvent::getCompletedRequest()</code> on or before
+this many milliseconds have elapsed from the first event requested.</tr>
+</table>
+
+<h5>RETURN VALUE</h5>
+
+Return true if the request is added to the queue, otherwise false is
+returned. If the add fails, the request is set with a fault code.
+
+<h4><a name=getCompletedRequest>pluton::clientEvent::getCompletedRequest()</h4>
+
+Once a request has completed or timed out, it is made available by
+this method. This method can be called at any time, including during
+event exchange. It is important to call this method as completed
+requests accumulate on an internal queue and consume memory unless
+drained from the queue.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/clientEvent.h&gt;
+
+    pluton::clientEvent C;
+
+    pluton::clientRequest* R = C.getCompletedRequest();
+
+</pre>
+
+<h5>RETURN VALUE</h5>
+
+A pointer to a <code>pluton::clientRequest</code> previously
+added via <code>pluton::clientEvent::addRequest()</code>. If no
+requests are complete, NULL is returned.
+
+<p>Typical usage is to make repeated calls to
+<code>pluton::clientEvent::getCompletedRequest</code> until NULL is returned.
+
+<h3><a name=exchangingEvents>Exchanging event information</h3>
+
+Exchanging event information is the way that
+<code>pluton::clientEvent</code> progresses requests through the
+execution process. The client API provides a single method for the
+caller to determine which <em>new</em> events are of current interest to
+<code>pluton::clientEvent</code> and there are three methods for the
+caller to return <i>readable</i>, <i>writable</i> and <i>timeout</i>
+completion events to the client API.
+
+<p>An event requirement is supplied by
+<code>pluton::clientEvent::getNextEventWanted()</code>
+each time it is needed by the
+client API and is not supplied again until after the results of that
+event have been returned. In other words, each event requirement is a
+<i>one-time</i> request. This suits well with the
+<code>event_once()</code> routine supplied with
+<a href=http://monkey.org/~provos/libevent/>libevent</a>.
+
+<p>If an event is <i>lost</i> by the caller and never returned to the
+client API, the corresponding <code>pluton::clientRequest</code> will
+never complete or become available to the caller.
+
+<p>In summary, don't lose events and do not return them more than
+once.
+
+
+<h4><a
+name=getNextEventWanted>pluton::clientEvent::getNextEventWanted()</h4>
+
+Whenever a request is added to the <code>pluton::clientEvent</code>
+<em>and</em> after events are returned to <code>pluton::clientEvent</code>,
+the caller must discover which new events are of current interest to
+<code>pluton::clientEvent</code> and add those events to whatever
+mechanism the caller is using to monitor events; in the case of
+<code>libevent</code> that means calling <code>event_once</code>.
+
+<p>Repeated calls should be made to
+<code>pluton::clientEvent::getNextEventWanted()</code> until the
+return indicates that no additional events are required. Generally
+speaking, <code>pluton::clientEvent::getNextEventWanted()</code>
+returns one event requirement per outstanding request, however callers
+should not rely on this.
+
+<p>The <code>pluton::clientEvent::getNextEventWanted()</code> method
+has an optional <code>clientRequest</code> parameter which constraints
+return events to just those applicable to that request. If this
+parameter is not supplied or is NULL, events for all outstanding
+requests are returned.
+
+<h5>SYNOPSIS</h5>
+
+Return a pointer to a <code>pluton::clientEvent::eventWanted</code> structure that describes which
+event the caller should detect for the client API.
+
+<pre>
+    #include &lt;pluton/clientEvent.h&gt;
+
+    enum eventType { wantRead=1, wantWrite=2 };
+
+    typedef struct {
+      eventType				type;
+      int				fd;
+      struct timeval			timeout;
+      const pluton::clientRequest* 	clientRequestPtr;
+    } eventWanted;
+
+    pluton::clientEvent	C;
+
+    const pluton::clientEvent::eventWanted* ewp
+	= C.getNextEventWanted(const struct timeval* now, pluton::clientRequest* filter=0);
+</pre>
+
+The <code>eventType</code> and <code>eventWanted</code> definitions
+are in <code>&lt;pluton/clientEvent.h&gt;</code> and are include here for
+discussion purposes.
+
+<h5>PARAMETERS</h5>
+
+
+<table border=1>
+<tr><th>Name<th>Description</tr>
+
+<tr><td>struct timeval* now<td>A pointer to the current time
+consistent with the <code>gettimeofday()</code> system call.</tr>
+
+<tr><td>pluton::clientRequest* filter<td>An optional pointer to a
+current request. If present, only events for that request will be
+returned to the caller. Naturally requests other than this
+request may not progress since the caller can never select on
+them, so only use this parameter if you are sure of the consequences.</tr>
+
+</table>
+
+<h5>RETURN VALUE</h5>
+
+A pointer to a <code>pluton::clientEvent::eventWanted</code> structure or NULL if
+no new events are wanted. This pointer remains valid until the event
+is returned. NULL is returned if there are no requests in the queue
+or if all outstanding requests completed without the need for further
+I/O events.
+
+<p>
+
+<table border=1>
+<tr><th>Name<th>Description</tr>
+
+<tr><td>Type<td>One of the enumerated values to indicate whether a
+read or write event is desired.</tr>
+
+<tr><td>fd<td>The system file descriptor for that event. No
+operations are allowed on this file descriptor excepting to detect
+the event required.</tr>
+
+<tr><td>timeout<td>How long to wait for the event to occur. A timeout
+event must be returned if the timeout expires.</tr>
+
+<tr><td>clientRequestPtr<td>A pointer to the request requiring the
+event.
+<p>This value is intended as a convenience for the caller and
+is not an essential part of the event requirement.
+
+</table>
+
+<p>Expected usage of each <code>pluton::clientEvent::eventWanted</code> returned is
+to call <code>event_once()</code>. Given that multiple events may be
+required, a typically and optimal exchange with
+<code>event_once()</code> could look like this:
+
+<center>
+<table border=1>
+<td>
+<pre>
+#include &lt;event.h&gt;
+#include &lt;pluton/clientEvent.h&gt;
+
+pluton::clientEvent C;
+
+struct timeval now;
+gettimeofday(&now, 0);
+
+const pluton::clientEvent::eventWanted* ewp;
+while ((ewp = C.getNextEventWanted(&now))) {
+  event_once(ewp->fd,
+	     (ewp->type == pluton::clientEvent::wantRead) ? EV_READ : EV_WRITE,
+	     yourEventHandler, (void*) &C, &ewp->timeout);
+}
+</pre>
+</table>
+</center>
+
+<p>From the above fragment you can see that the caller is responsible
+for supplying the event handler for <code>libevent</code> to transfer
+available events into the client API. A sample showing how this is
+done is shown in the next section.
+
+<p>This of course is just one way of managing these events and many
+others are possible without <code>libevent</code>, such as using the
+<code>fd</code> as an index into a <code>select()</code> bitmap.
+
+<p>One important point to note is that only two types of events are
+explicitly wanted as timeout events are never requested independently
+of <code>wantRead</code> or <code>wantWrite</code>.
+
+<h4><a
+name=sendEvent>
+pluton::clientEvent::sendCanReadEvent(),
+sendCanWriteEvent() and
+sendTimeoutEvent()
+</h4>
+
+Return a completed <code>eventWanted</code> request to the client
+API. This is the mechanism by which the results of
+your <code>select/poll/kqueue/epoll</code> call is returned to the
+client API.
+
+<p>All three methods have identical parameters and return
+values except the optional  <code>abortFlag</code> which only
+applies to <code>sendTimeoutEvent</code>.
+The type of event is defined by the method name. Once an fd
+has been returned with one of these calls, the caller has relinquished
+control should ignore this fd unless it is again
+given to the caller via <code>getNextEventWanted()</code>.
+
+<H5>Timeouts</h5>
+
+When <code>poll()</code> or <code>select()</code> indicate a timeout,
+ the caller should return all fds to the API  via
+ <code>sendTimeoutEvent()</code>. Doing so does <i>not</i> mean that
+ the corresponding requests have timed out. Rather it is merely a hint
+ that the time budget for each request needs to be re-calculated.
+
+<p>The reason for these semantics is that when
+using <code>poll()</code> or <code>select()</code> the caller
+typically uses the minimum timeout value returned by all calls
+to <code>getNextEvent</code>, however the caller is free to use
+whatever timeout value they deem suitable.
+
+<p>The exception to this is if the <code>abortFlag</code>
+  for <code>sendTimeoutEvent</code> is true.
+
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/clientEvent.h&gt;
+
+    pluton::clientEvent	C;
+
+    int C.sendCanReadEvent(int fd);
+    int C.sendCanWriteEvent(int fd);
+    int C.sendTimeoutEvent(int fd, bool abortFlag=false);
+
+</pre>
+
+<h5>PARAMETERS</h5>
+
+
+<table border=1>
+<tr><th>Name<th>Description</tr>
+
+<tr><td>fd<td>The file descriptor supplied by a previous call to
+<code>pluton::clientEvent::getNextEventWanted()</code></tr>
+
+<tr><td>abortFlag<td>If true, the associated request will be treated
+    as timed out and will be returned on the next call
+    to <code>getCompletedRequest</code>.
+</tr>
+
+</table>
+
+
+<p>
+<h5>RETURN VALUES</h5>
+
+<table border=1>
+<tr><td>-1<td>
+The fd is not part of a current request</tr>
+
+<tr><td>-2<td>
+The fd is not part of a current request - but may have been from an
+older one</tr>
+
+<tr><td>-3<td>
+The fd has no events outstanding
+</tr>
+
+<tr><td>&lt;0<td>Some other unspecified error</tr>
+
+<tr><td>&gt;=0<td>The event has been accepted and processed
+</table>
+
+<p>For non-negative returns,
+use <code>pluton::clientEvent::getCompletedRequest()</code> to consume
+completed requests.
+
+<p>
+In the case of <code>libevent</code> the typical technique is to
+supply an event handler with the call to <code>event_once()</code>
+which transfer events back into the client API. Here is a fragment
+showing one way to do this:
+
+<p>
+<center>
+<table border=1>
+<td>
+<pre>
+
+#include &lt;event.h&gt;
+#include &lt;pluton/clientEvent.h&gt;
+
+pluton::clientEvent C;
+
+static void
+libeventHandler(int fd, short event, void* voidC)
+{
+  pluton::clientEvent* C = (pluton::clientEvent*) voidC;
+
+  switch (event) {
+    case EV_READ: C->sendCanReadEvent(fd); break;
+
+    case EV_WRITE: C->sendCanWriteEvent(fd); break;
+
+    case EV_TIMEOUT: C->sendTimeoutEvent(fd); break;
+  }
+
+
+  pluton::clientRequest* R;
+  while ((R = C->getCompletedRequest())) ... do something
+}
+</pre>
+</table>
+</center>
+
+<p>
+Note that the fragment checks for completed requests after
+transferring the event to the client API. Such checks do not have to
+occur here, but typically a request will be available after an event
+has been transferred.
+
+o<h3><a name=sampleSelect>Sample program</a> using <code>select()</code></h3>
+
+A complete <a href=sampleEventClient.cc.txt>sample program</a>
+demonstrates most of the aspects of coding to the <code>event</code> interface. It
+ adds requests to <code>pluton::clientEvent</code> then
+  loops until those requests are completed. It demonstrates the event
+  style of interface <i>without</i> using <code>libevent</code>.
+
+<p>Importantly, this program demonstrates how to return timeouts for all file descriptors.
+
+<p>The one thing this program does not demonstrate is applying the supplied timeout to
+  the <code>select()</code> call. This aspect is left as an exercise for the reader.
+
+<p>
+<hr>
+<font size=-1>
+$Id: clientAPINonBlock.html 265412 2010-01-11 19:14:15Z markd $
+&copy; Copyright Yahoo! Inc, 2007, 2008, 2009, 2010
+</font>
+</body>
+</html>

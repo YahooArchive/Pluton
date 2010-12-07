@@ -1,0 +1,590 @@
+<html>
+<head>
+<link rel="shortcut icon" href=images/pluto-symbol.jpg type="image/x-icon">
+<title>
+The Pluton Framework: Client API
+</title>
+</head>
+
+<body>
+
+<center>
+<a href=index.html>
+<img height=100 src=images/pluto-charon.jpg ALT="[Pluto Charon Image]">
+</a>
+</center>
+
+<h2 align=center>The Pluton Framework: FAQ</h2>
+
+
+<h3>General/Philosophical</h3>
+
+<a href=#G1>G1: Can a service be too small?</a>
+<br><a href=#G2>G2: What serialization-type is best?</a>
+<br><a href=#G3>G3: Are there any issues with exchanging large
+amounts of data between clients and services?</a>
+
+<br><a href=#G99>G99: <i>It</i> doesn't work - what should I do?</a>
+
+<h3>Client API</h3>
+
+
+<a href=#C1>C1: Can you put response times into the requests so I
+can see how long a service takes?</a>
+<br><a href=#C2>C2: Is the client library thread-safe?</a>
+<br><a href=#C3>C3: Is it possible to <i>fire and forget</i> with Pluton?</a>
+
+<h3>Service API</h3>
+
+<a href=#S1>S1: How do I test a service independently of the manager?</a>
+<br><a href=#S2>S2: Should services be stateless?</a>
+<br><a href=#S3>S3: How do multiple clients avoid contention when
+accessing a service?</a>
+<br><a href=#S4>S4: Does a service have to be a stand-alone executable?</a>
+<br><a href=#S5>S5: How do I run a scripting language service written in
+  perl or PHP?</a>
+
+
+<h3>Manager</h3>
+
+<a href=#M1>M1: What user does a service normally run as?</a>
+<br><a href=#M2>M2: What happened to M2?</a>
+<br><a href=#M3>M3: When should I need to kill the manager?</a>
+<br><a href=#M4>M4: How do I stop/start/restart the manager?</a>
+<br><a href=#M5>M5: Why does the manager take so long to shut down?</a>
+<br><a href=#M6>M6: How do I find out what the manager is doing?</a>
+<br><a href=#M7>M7: The manager appears not to have started - why not?</a>
+<br><a href=#M8>M8: How do I manually run the <code>plutonManager</code>?</a>
+<br><a href=#M9>M9: Why does the manager take so long to start?</a>
+
+<h3>Configurations</h3>
+
+
+<h3>General/Philosophical</h3>
+
+<a name=G1>
+<h4>G1: Can a service be too small?</h4>
+
+Yes. The benefit to making a function into a separate service revolves
+around latency, frequency-of-use and resource usage. If a function has
+low latency, is invoked very frequently and consumes few resources, it
+is not a great candidate for making into a service.
+
+<p>As a rule of thumb, if a function consumes less than 10
+milliseconds of latency or CPU, then it is not likely to be
+significant enough to make into a service.
+
+<p>There are many exceptions though, for example if you need process
+isolation due to segfault-inducing bugs or resource leaks, then you
+might make a function into a separate service, even though there are
+no latency benefits.
+
+<a name=G2>
+<h4>G2: What serialization-type is best?</h4>
+
+There is no right answer to this question, apart from "it depends". In
+general, you should use a serialization type that works well with the
+programming environment you are using. There is rarely much point in
+using a non-native serialization type if that imposes heavy conversion
+costs at each end of the service.
+
+<p>Service output that is ultimately destined for Javascript programs
+can often benefit from the JSON format as Javascript programs can
+instantiate objects directly from JSON. Conversely, PHP serialization
+might be right for a heavy PHP environment. It all depends.
+
+<p>Obvious exceptions include company-wide standardization requirements and the
+convenience of consistency of a common serialization.
+
+<a name=G3>
+<h4>G3: Are there any issues with exchanging large
+amounts of data between clients and services?</h4>
+
+The main two issues to consider are that the data has to travel
+through a local socket so there is a transfer cost and the request and
+response has to fit in memory for the client and service.
+
+<p>Apart from that, there are no limitations intrinsic to the system.
+
+<a name=G99>
+<h4>G99: <i>It</i> doesn't work - what should I do?</h4>
+
+For some value of <i>"it"</i>, the most important thing to do is
+understand what isn't working exactly. Even if you can't fix your
+problem, having concise information makes it much easier for others
+to help you.
+
+<p>
+The typically diagnostic process includes the following:
+<ol>
+<li>Check that 
+<a href=commands.html#plPing><code>plPing</code></a>
+runs
+
+<li>Make sure daemontools and the plutonManager are running (<a
+href=#M7>M7</a> and <a href=#M8>M8</a>)
+
+<li>Check that the Manager is making periodic entries to the
+log (<a href=#M6>M6</a>)
+
+<li>Ensure that all the permissions and ownership values of all
+entries in 
+<code>/usr/local/var/pluton</code> match those of a working instance
+on another machine. They should look like this:
+
+<pre>
+$ ls -lRa /usr/local/var/pluton
+
+/usr/local/var/pluton:
+total 16
+drwxr-xr-x   3 puser wheel 4096 Jun 13 10:04 .
+drwxr-xr-x  13 root  root  4096 May 19 13:41 ..
+-r--r--r--   1 puser users  278 Jun 13 10:04 lookup.map
+drwxr-xr-x   2 puser wheel 4096 Jun 13 10:04 rendezvous
+
+/usr/local/var/pluton/rendezvous:
+total 20
+drwxr-xr-x  2 puser wheel 4096 Jun 13 10:04 .
+drwxr-xr-x  3 puser wheel 4096 Jun 13 10:04 ..
+-rw-r--r--  1 puser users 4365 Jun 13 10:04 system.curl.0.raw.mmap
+srw-rw-rw-  1 puser users    0 Jun 13 10:04 system.curl.0.raw.socket
+-rw-r--r--  1 puser users 4365 Jun 13 10:04 system.echo.0.raw.mmap
+srw-rw-rw-  1 puser users    0 Jun 13 10:04 system.echo.0.raw.socket
+</pre>
+
+<li>Make sure your service executable runs in the relatively pristine
+environment created by the plutonManager. 
+<a href=commands.html#plTest><code>plTest</code></a>
+is a good tool to test out your service.
+
+</ol>
+<p>
+
+If, after all those steps, you are still no closer to understanding
+the problem, you should collect the information you gathered during
+this and ask the folk on the github.com list.
+
+
+
+<h3>Client API</h3>
+
+<a name=C1><h4>C1: Can you put response times into the requests so I
+can see how long a service takes?</h4>
+
+Tracking the response time of a request could be added to the client
+API, but you should know that the manager produces periodic reports on
+the response times of services. Average response time, slowest 10
+responses, CPU used per request, memory size, etc. The idea is that
+you can slurp these standardized reports into a database/spreadsheet
+and analyze the performance of every service over time.
+
+<p>
+Also, this sort of functionality can be  easily achieved by the caller
+tracking response times thus:
+
+<p>
+<pre>
+    addRequest(R1);
+    addRequest(Rn);
+
+    struct timeval startTime;
+    gettimeofday(startTime, 0);
+    while (pluton::clientRequest R = client::executeAndWaitAny()) {
+        struct timeval now;
+        gettimeofday(now, 0);
+        calculate_response_time(R, start, now);
+    }
+
+</pre>
+
+If you simply want to know how long service takes on an ad
+hoc basis, you might want to try the <code>-e</code> option for the <a
+href=commands.html#plSend><code>plSend</code></a> command.
+
+<a name=C2><h4>C2: Is the client library thread-safe?</h4>
+<p>
+As of version 0.50 and later, the C++ client library is reentrant and
+can be used by threads if the application follows a number of rules as
+described in the <a href=threading.html>thread interface</a> document.
+
+<p>As a precaution, the client library tracks re-entrant call attempts that do
+not follow the rules via a <i>oneAtATime</i>-type flag and will generate
+an<code>assert()</code> failure if it detects re-entrant call attempts or other
+catastrophic call sequences. The <code>assert()</code> message looks something
+like one of these:
+
+<pre>
+perCallerClient.cc:66: failed assertion `_oneAtATimePerCaller == false'
+
+clientImpl.cc:75: failed assertion `_oneAtATimePerThread == false'
+</pre>
+
+<a name=C3><h4>C3: Is it possible to <i>fire and forget</i> with Pluton?</h4>
+
+By "fire and forget" if you mean to initiate a service and then not
+have to wait for the result, then sure, set the
+<a href=clientAPI.html#noWaitAttr><code>noWaitAttr</code></a>
+attribute on the request.
+
+<p>There are two caveats with using the 
+<a href=clientAPI.html#noWaitAttr><code>noWaitAttr</code></a>
+attribute:
+
+<ul>
+<li>The <i>no wait</i> means no waiting for the <i>response</i> from the
+service. The client still waits until the request is sent to
+the socket buffer connected to the service instance. This means that
+the client still waits until there is a free service instance.
+
+<li>The only guarantee is
+that all of the request is sent to the service, whether the service
+even reads the complete request or whether it is
+able to complete the request is, naturally, unknown, unless the client
+and service communicate thru a side-channel of some sort.
+</ul>
+
+<h3>Service API</h3>
+
+<a name=S1>
+<h4>S1: How do I test a service independently of the manager?</h4>
+
+<p>Testing a service independently of the manager is easy and
+encouraged. There are a number of ways you can do this and it's an
+easy way to build regression tests and to verify your service in the
+early stages of development.
+
+If you are new to Pluton then you mind want to read
+<a href=howToTestService.html>How to Test Your Service</a>
+which goes into much greater detail than this FAQ entry.
+
+<p>
+If you just need a refresher, then recall that the
+<a href=commands.html#plTest><code>plTest</code></a>
+program runs services independently of the manager and generates
+requests from STDIN.
+
+<p>
+Second, if you have recorded requests for this service, then the
+service can be run from the command line by setting up fd3 as the
+input request packet and arranging the output of fd4 to be the
+response packet. This technique is commonly referred to as the
+<i>file-descriptor-redirect</i> technique.
+<p>
+<pre>
+$ /path/service 3&lt;requestFile 4&gt;responseFile
+</pre>
+This technique is particularly useful if you need to run the service
+under a debugger such as <code>gdb</code>.
+
+<p>
+If you want to feed a service a request packet from STDIN and have
+the response packet written to STDOUT, you can use this style
+of redirection:
+<p>
+<pre>
+$ /path/service 3&lt;&amp;0 4&gt;&amp;1
+</pre>
+
+<a name=S2><h4>S2: Should services be stateless?</h4>
+
+Services are normally stateless - think of them as a super
+light-weight web-services. Having said that, a recent enhancement
+request resulted in the <code>affinity</code> attributes which allows
+a client to persist a connection once established so they can get back
+to the same service instance on each subsequent request.
+
+<p>It's not clear that <code>affinity</code> is entirely consistent
+with the spirit of the original idea, but the customer is always
+right!
+
+<a name=S3><h4>S3:How do multiple clients avoid contention when
+accessing a service?</h4>
+
+Within the constraints of the <a href=configuration.html>service
+configuration</a>, the <a
+href=plutonManager.html><code>plutonManager</code></a> manages the
+number of service instances dynamically. Client's block on an
+connect() to a Unix Socket until an instance becomes free. Well, they
+block until the timeout expires.
+
+<p>The service API automatically reports concurrency and response
+times to the manager so the manager knows how busy the aggregate pool
+of service instances are. In fact, that's the primary purpose of the
+manager; to manage the pool of services and track resource usage.
+
+<p>Each service is managed as a separate pool - there is no
+relationship between separately configured services.
+
+<a name=S4><h4>S4: Does a service have to be a stand-alone
+executable?</h4>
+
+Yes. The per-process encapsulation is one of the key design principles
+of Pluton as it enables:
+
+<ul>
+<li>Automatic resource monitoring by the plutonManager
+<li>Fault isolation
+<li>Ease of debugging with gdb or similar
+<li>Memory corruption isolation, etc
+</ul>
+
+<p>The manager is largely passive as all it does is a fork/exec
+sequence to create service instances and arrange a few file
+descriptors for the service API.
+
+<a name=S5><h4>S5: How do I run a scripting language service written in perl or PHP?</h4>
+
+(Note: this is actually a general discussion that applies running any
+scripting language program in a Unix environment).
+
+<p>Scripting languages
+need to invoke their interpreter to be run and this can be done in one of
+two ways. Either the script is supplied as a command line argument to
+the interpreter, eg:
+
+<p>
+<code>
+$ php myprogram.php
+</code>
+<p>
+
+or the script is converted into a <i>self-invoking executable</i> with the
+following steps:
+
+<ol>
+<li>Add the path to the interpreter as the first <code>#!</code> line of the
+script, eg:
+<p>
+<code>
+#! /usr/local/bin/php
+<br>
+&lt;?php
+<br>
+..
+</code>
+<li>Change the file mode of the script file to be executable
+
+<p>
+<code>
+$ chmod +x myprogram.php
+</code>
+</ol>
+
+<p>
+(The <code>#!</code> magic is standard across all Unixen).
+<p>
+Once that is done, you run your script program as a regular executable
+from the shell prompt, eg:
+
+<p>
+<code>
+$ ./myprogram.php
+</code>
+
+<p>
+<h5>Scripting languages in service configuration</h5>
+
+This discussion applies for service executables when
+run via a service configuration.  Recall that the
+ <a href=configuration.html#exec><code>exec</code></a>
+ line in the service
+configuration must point to an executable; this means that you can
+either run the interpreter directly, eg:
+<p>
+<code>
+exec /usr/local/bin/php path-to-your-script
+</code>
+</p>
+
+or turn your script into a <i>self-invoking executable</i> as described above
+and supply it directly in the
+ <a href=configuration.html#exec><code>exec</code></a>
+ line, eg:
+
+<p>
+<code>
+exec path-to-your-script
+</code>
+
+<h5>Scrpting languages and the
+<a href=commands.html#plTest><code>plTest</code></a> command</h5>
+
+This discussion also applies to testing scripting languages services
+with plTest; either invoke the scripting command directly, eg:
+
+<p>
+<code>
+$ plTest php myprogram.php
+</code>
+<p>
+or turn the script into a <i>self-invoking executable</i> and run it
+directly, eg:
+
+<p>
+<code>
+$ plTest ./myprogram.php
+</code>
+<p>
+
+
+<h3>Manager</h3>
+
+<a name=M1>
+<h4>M1: What user does a service normally run as?</h4>
+
+The service processes inherit the user credentials from the
+plutonManager. With a normal installation that will be the user
+'puser.
+
+<a name=M2>
+<h4>M2: What happened to M2?</h4>
+
+It got morphed and moved to <a href=#S6>S6</a>.
+
+<a name=M3>
+<h4>M3: When should I need to kill the manager?</h4>
+
+Generally, the answer is never. Recall that the manager plays a
+passive role in the client-to-service interaction so it is the
+services that are more likely to require restarting.
+
+<p>The normal action is to signal the manager to reload the
+configuration with the <code><a
+href=commands.html#plReloadManager>plReloadManager</a></code>
+command. In this case it will scan the configuration directory for any
+changes and replace changed services.
+
+<a name=M4>
+<h4>M4: How do I stop/start/restart the manager?</h4>
+
+The plutonManager is run as a <i>supervised</i> process so the usual
+<code>svc</code> invocations are available.
+
+<a name=M5>
+<h4>M5: Why does the manager take so long to shut down?</h4>
+
+After being signaled to shut down or restart, the manager tries to
+shut down all active services in an orderly manner. To achieve this,
+the manger issues a series of increasing aggressive signals to each
+service process until they exit or until the manager runs out of
+escalation options (the last being kill -9).
+
+<p>This orderly shutdown can take some time to complete as the manager
+assumes that a service may be currently processing a request and
+prefers to give it time to complete - within reason. In short please
+be patient with the slow nature of the shutdown.
+
+<p>Watching the manager log is instructive in terms of shut down
+progress. The next FAQ entry discusses logging.
+
+<a name=M6>
+<h4>M6: How do I find out what the manager is doing?</h4>
+
+The manager writes a relatively extensive log to
+<code>/usr/local/logs/pluton_manager/current</code>. This log file can me
+monitored with the following command:
+
+<pre>
+tail -F /usr/local/logs/pluton_manager/current | /usr/local/bin/tai64nlocal
+</pre>
+
+Many of these log entries are documented on <a href=logs.html>this</a>
+page. In addition, the types of log entries being generated can be
+changed dynamically via the <a
+href=plutonManager.html#CommandPort>Command Port</a>.
+
+<a name=M7>
+<h4>M7: The manager appears not to have started - why not?</h4>
+
+There are numerous reasons why the manager may not have started,
+ranging from installation issues to people <i>helpfully</i> modifying
+files and permissions in <code>/usr/local/var/pluton</code> - of course you
+should never do this
+unless you are absolutely sure of the implications.
+
+<a name=M8>
+<h4>M8: How do I manually run the <code>plutonManager</code>?</h4>
+
+If the manager appears not to be running or you suspect a problem with
+<code>daemontools</code>, you may want to run the
+manager manually to help diagnose the problem.
+
+<p>
+To run the manager manually, first make sure that the manager truly is
+not running via <code>ps</code> or similar. Then, as root, run this
+command:
+
+<pre>
+sh -x /usr/local/var/daemontools/plutonManager/run
+</pre>
+<p>
+at which point you should see the output of the manager on your screen.
+
+<a name=M9>
+<h4>M9: Why does the manager take so long to start?</h4>
+
+Or put another way: if a service is called immediately after the
+manager is started, the client can sometimes get a timeout, why is
+this?
+
+<p>
+There is usually a delay of a couple of seconds after the manager has
+been told to start before services are available. There are two main
+reasons for this.
+
+<p>
+First, the manager is itself typically managed by
+<a href=http://cr.yp.to/daemontools.html>daemontools</a>
+which only scans for new services every 5 seconds. Thus it could
+take up to 5 seconds after yinst start before daemontools notices the
+manager entry and starts it up.
+
+<p>
+Second, the startup script of the manager first runs
+the <code>plKillOldServices</code> command which cleans up the shared
+directories and any residual services that might be running. This
+latter process involves a kill/sleep/check loop which could take
+another 5 seconds or so to complete, though a normal restart after a
+normal shutdown will should not incur any delay here.
+
+<p>
+Due to <code>daemontools</code> the manager is normally started
+once when the system is booted and remains running until it
+reboots. In other words, manager restarts are rare events.
+
+<p>As a final note, installing new services (or new versions of a
+service) should not normally require restarting the manager. Rather,
+the right strategy is two either:
+
+<p>
+<ol>
+<li>Replace the service executable/file
+<li>Update the service config file (a touch does the trick)
+<li>run
+  the <a href=commands.html#plReloadManager><code>plReloadManager</code></a>
+  command which causes the manager to scan the configuration directory
+  for changes
+</ol>
+<p>
+or, in a development environment you can be lazier and go:
+
+<ol>
+<li>Replace the service executable
+<li>killall old instances of the service
+</ol>
+
+<p>
+which means that all future instances of that service can only
+possibly be the newly installed executable.
+
+
+
+<h3>Configurations</h3>
+
+<hr>
+<font size=-1>
+$Id: FAQ.html 263341 2009-11-26 17:35:13Z markd $
+&copy; Copyright Yahoo! Inc, 2007, 2008
+</font>
+</body>
+</html>

@@ -1,0 +1,335 @@
+<html>
+<head>
+<link rel="shortcut icon" href=images/pluto-symbol.jpg type="image/x-icon">
+<title>
+The Pluton Framework: Threading Support in the C++ client library
+</title>
+</head>
+
+<body>
+
+<center>
+<a href=index.html>
+<img height=100 src=images/pluto-charon.jpg ALT="[Pluto Charon Image]">
+</a>
+</center>
+
+<h2 align=center>The Pluton Framework: Threading Support in the C++ client library</h2>
+
+
+<font size=+1>
+<ol>
+<li><a href=#Introduction>Introduction</a>
+<li><a href=#Motivation>Motivation for adding threading support</a>
+<li><a href=#Caveats>Caveats regarding threaded programming</a>
+<li><a href=#Rules>A few simple rules that <i>must</i> be followed</a>
+<li><a href=#setThreadHandlers>Providing your thread-support routines via
+    <code>pluton::client::setThreadHandlers()</code></a>
+<li><a href=#pthreadExample>Example using posix threads</a>
+<li><a href=#howUsed>How the supplied Thread Handlers are used internally</a>
+</ol>
+</font>
+
+<h3><name=Introduction>Introduction</h3>
+
+As of version 0.50 (circa Aug2008), the C++ client library has been
+made reentrant so that it can be used by threaded
+applications. Additionally, the C++ client library can actively
+participate in concurrent usage if the caller chooses to identify the
+thread routines to use..
+
+<p>
+No particular threading
+system is embedded within the library, rather the application supplies
+a series of routines that provide thread identity and mutex functions
+needed to ensure reentrancy and protection of critical regions.
+
+<p>
+By having
+the application supply these routines, any reasonable threading system
+can be supported, such as <code>posix threads</code> or
+<a href=http://state-threads.sourceforge.net/>State
+Threads</a>.
+
+<p>
+(Note that State Threads applications are almost certainly
+better served by using
+the simpler <a href=clientAPINONBlock.html#setPollProxy><code>setPollProxy</code></a>
+non-blocking interface to achieve threaded concurrency.)
+
+<p>
+In addition to identifying these support routines, the
+application <i>must</i> adhere to a small set of rules imposed by the
+library so that it can provide simple reentrancy protection.
+
+<h3><a name=Motivation>Motivation for adding threading support</h3>
+
+The primary motivation for adding threading support to the C++ client
+library is in preparation for providing client-side support for
+Java. Java programs, applications and many of their frameworks often
+implicitly rely on underlying thread support. In this context,
+providing a high-performance, non-serializing interface to pluton can
+only be achieved by integrating well with the Java threaded
+environment.
+
+<p>The threading support mechanism described here is designed entirely
+  to enable that Java integration. As it happens, this mechanism also
+  enables threaded pluton clients efficient and concurrent access to
+  pluton services, but that outcome is secondary to supporting Java
+  integration.
+
+<h3><a name=Caveats>Caveats regarding threaded programming</h3>
+
+One of the primary goals of the pluton framework is to provide
+  parallel services without the need for programmers to write threaded
+  programs. The reason for this is that threaded programming of any
+  complexity are hard to get right and even harder for a second
+  programmer to maintain.
+
+<p>It's also the case that very few application libraries are written
+  to be thread-safe or reentrant thus a threaded program typically has
+  to re-implement a lot of application-level functionality from
+  scratch.
+
+<p>Finally, threaded programming is no panacea for increasing
+  performance, so if your motivation for using threads is performance,
+  you want to be very sure that you cannot achieve the same outcome via
+  simpler means and thus save the poor bunny who inherits your code
+  from having a permanent headache.
+
+<p>In all, this means that threads are <i>rarely</i> the right
+  solution in our environment so please don't use them unless you are
+  a Jedi Master <i>and</i> you are prepared to train those future
+  bunnies that will inherit your code.
+
+<h3><a name=Rules>A few simple rules that <i>must</i> be followed</h3>
+
+While it would have been possible to make thread-support completely
+transparent to the application, that transparency would have involved
+a significant amount of mutex calling (for every accessor at least) as
+well as a somewhat complicated internal re-design to maximize
+parallelism.
+
+<p>The alternative approach is to impose some simple constraints on the
+  application that greatly simplifies the task of the library. This
+  implementation has chosen the latter.
+
+<p>
+The three simple rules that a threaded pluton client <i>must</i>
+follow are:
+
+<ol>
+<li><code>pluton::client</code> objects cannot be shared between
+  threads. Once a <code>pluton::client</code> object has been created,
+  it can only be used by the creating thread.
+
+<li><code>pluton::clientRequest</code> objects cannot be accessed by
+  any thread from the time they are added to
+  the <code>pluton::client</code> object and until after they have
+  been returned to the caller (most often via
+  one the <code>executeAndWait*</code> routines).
+
+<li>There is no internal mutex protection when calling any of
+  the <code>pluton::clientRequest</code> accessors, so it is the
+  responsibility of the application to managed any shared access to
+  these objects.
+</ol>
+
+<p>The reason for the first restriction relates to the underlying
+  implementation that manages a request execution queue per thread.
+
+<p>The reasons for the second restriction are many. In part because
+  that <code>pluton::clientRequest</code> accessors are not mutex
+  protected - for performance reasons - but also because the client
+  API running under any thread actively changes the contents of the
+  object as a request progresses. In short, when an application adds a
+  request to a <code>pluton::client</code> object it relinquishes any
+  right to touch the request until it is returned to the
+  application. Note that this constraint has always applied to client
+  applications, not just threaded ones.
+
+<p>While <code>pluton::client</code> objects cannot be shared between
+  threads, no such restrictions applies
+  to <code>pluton::clientRequest</code> objects. When not being
+  managed by the <code>pluton::client</code> object, they can be
+  freely exchanged between threads - with the presumption that the
+  application manages any concurrency issues and abides by rule 2.
+
+
+<h3><a name=setThreadHandlers>Providing your thread-support routines via <code>pluton::client::setThreadHandlers()</code></h3>
+
+The static <code>pluton::client::setThreadHandlers()</code> method
+identifies the routines that the client library
+needs to use to ensure thread-safely. The semantics of these
+routines are modeled after <code>pthread(3)</code> with the
+expectation that this is the most likely threading system used.
+
+<p>The <code>pluton::client::setThreadHandlers()</code>
+method <i>must</i> be called prior to any construction
+of <code>pluton::client</code> objects; otherwise
+an <code>assert(3)</code> will result if this order is not honored.
+Additionally, the <code>pluton::client::setThreadHandlers()</code>
+method can only be called once per process otherwise, you guessed it,
+an <code>assert(3)</code> will result.
+
+<p>
+<center>
+<i>
+(The rationale for using <code>assert(3)</code> is simply based on the
+  fact that proceeding in the presence of such errors is likely to be
+  catastrophic for the application.)
+</i>
+</center>
+
+<p>From the synopsis, it is clear that most of the supplied methods
+  to <code>pluton::client::setThreadHandlers()</code> are optional,
+  though not providing them can only possibly make sense in a
+  non-preemptive threading environment.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+  #include &lt;pluton/client.h&gt;
+
+  void setThreadHandlers(pluton::thread_self_t,
+			 pluton::mutex_new_t mNew=0,
+                         pluton::mutex_delete_t mDelete=0,
+                         pluton::mutex_lock_t mLock=0,
+                         pluton::mutex_unlock_t mUnlock=0);  
+</pre>
+
+<h5>TYPEDEFS</h5>
+
+The following typedefs are defined in the <code>pluton</code>
+namespace in <code>&lt;pluton/client.h&gt;</code>. Your support
+routines are at liberty to define the <code>pluton::mutex</code>
+and <code>pluton::thread</code> structures as they see fit.
+
+<pre>
+  typedef struct thread* thread_t;
+  typedef struct mutex* mutex_t;
+  
+  typedef pluton::thread_t (*thread_self_t)(const char* who);
+  typedef pluton::mutex_t (*mutex_new_t)(const char* who);
+  typedef void (*mutex_delete_t)(const char* who, pluton::mutex_t);
+  typedef int (*mutex_lock_t)(const char* who, pluton::mutex_t);
+  typedef int (*mutex_unlock_t)(const char* who, pluton::mutex_t);
+</pre>
+
+<h5>PARAMETERS</h5>
+
+<table border=1>
+<tr><th>Name<th>Description</tr>
+
+<tr valign=top><td>pluton::thread_t<td>An opaque type used to
+    communicate thread identity. The underlying object is
+    only known to the application supplied routine.</tr>
+
+<tr valign=top><td>pluton::mutex_t<td>An opaque type used to identify
+    mutexes created and used by the application supplied
+    routines.</tr>
+
+<tr><td><br><td></tr>
+
+<tr valign=top><td>who<td>A C-string identifying the internal library
+    function making the call to the application supplied routine. This
+    may be useful for diagnostic or logging purposes... Or it may be
+    ignored - your call.
+<tr><td><br><td></tr>
+
+
+<tr valign=top><td>pluton::thread_self_t<td>A pointer to a method that
+    returns a unique <code>pluton::thread_t</code> for each thread.</tr>
+
+<tr valign=top><td>pluton::mutex_new_t<td>A pointer to a method that
+    returns a <code>pluton::mutex_t</code> that can be used by the
+    other support methods.</tr>
+
+<tr valign=top><td>pluton::mutex_destroy_t<td>A pointer to a method that
+    removes all resources associated with the <code>pluton::mutex_t</code>.
+
+<tr valign=top><td>pluton::mutex_lock_t<td>A pointer to a method that
+    locks the <code>pluton::mutex_t</code> with semantics identical
+    to <code>pthread_mutex_lock(3)</code>.
+
+<tr valign=top><td>pluton::mutex_unlock_t<td>A pointer to a method that
+    unlocks the <code>pluton::mutex_t</code> with semantics identical
+    to <code>pthread_mutex_unlock(3)</code>.
+
+</table>
+
+<h3><a name=pthreadExample>Example using posix threads</h3>
+
+This example shows one way in which an application might
+identify <code>pthread</code> routines as those providing the
+underlying support. This example defines
+the <code>pluton::mutex</code> structure which minimizes the need
+for <code>reinterpret_cast<>()</code>.
+
+
+<p>Note that the application supplied methods are nothing more than
+  super-thin wrappers for the <code>pthread</code> routines.
+<pre>
+
+#include &lt;pthread.h&gt;
+
+class pluton::mutex {
+public:
+  mutex() { pthread_mutex_init(&pm, 0); }
+  ~mutex() { pthread_mutex_destroy(&pm); }
+  pthread_mutex_t pm;
+};
+
+static pluton::mutex_t mNew(const char* who) { return new pluton::mutex; }
+static void mDelete(const char* who, pluton::mutex_t m) { delete m; }
+
+static int mLock(const char* who, pluton::mutex_t m) { return pthread_mutex_lock(&m->pm); }
+static int mUnlock(const char* who, pluton::mutex_t m) { return pthread_mutex_unlock(&m->pm); }
+
+static pluton::thread_t tSelf(const char* who) { return reinterpret_cast&lt;pluton::thread_t&gt;(pthread_self()); }
+
+int
+main(int argc, char** argv)
+{
+  pluton::client::setThreadHandlers(tSelf, mNew, mDelete, mLock, mUnlock);
+
+  ..
+</pre>
+
+
+<h3><a name=howUsed>How the supplied Thread Handlers are used internally</h3>
+
+In part due to the <a href=#Rules>prohibition</a> against sharing
+<code>pluton::client</code> objects between threads, the client
+library requires very limited use of the supplied handlers.
+
+<p>Actually usage is:
+<ul>
+<li>One call to <code>mutex_new_t</code> during the call
+to <code>pluton::client::setThreadHandlers</code>.
+
+<li>A single <code>mutex_lock_t</code> and <code>mutex_unlock_t</code>
+sequence during construction of each <code>pluton::client</code>. This
+  is to allocate a per-thread request queue structure.
+
+<li>Numerous calls to <code>thread_self_t</code>, especially on entry
+  into any of the <code>executeAndWait*()</code> set. As a defensive
+  measure, they all check for adherence to the <a href=#Rules>rule</a>
+  about not sharing <code>pluton::client</code> objects between
+  threads.
+</ul>
+
+What this demonstrates is that the internal use of thread-protecting
+machinery is absolutely minimalist and consequentially efficient. This
+is an outcome of our <a href=#Rules>few simple rules</a> and is
+hopefully an acceptable trade-off for applications.
+
+
+<p>
+<hr>
+<font size=-1>
+$Id: threading.html 260483 2009-10-16 18:47:56Z markd $
+&copy; Copyright Yahoo! Inc, 2008
+</font>
+</body>
+</html>

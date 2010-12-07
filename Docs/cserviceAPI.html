@@ -1,0 +1,399 @@
+<html>
+<head>
+<link rel="shortcut icon" href=images/pluto-symbol.jpg type="image/x-icon" />
+<title>
+The Pluton Framework: C Service API
+</title>
+</head>
+
+<body>
+
+<center>
+<a href=index.html>
+<img height=100 src=images/pluto-charon.jpg ALT="[Pluto Charon Image]">
+</a>
+</center>
+
+<h2 align=center>The Pluton Framework: C Service API</h2>
+
+<h3>Introduction</h3>
+
+The C Service API is a thin wrapper around the C++ <a
+href=serviceAPI.html>service</a> APIs.
+
+<p>
+While the C API has been made as similar as possible to the C++ API,
+the language differences necessarily mean a number of changes to
+accomodate things like references and <code>std::string</code> types
+that are used with C++.
+<p>
+
+C programmers should familiarize themselves with the C++
+Service APIs as the semantics of the methods are discussed there; this
+document largely describes the syntax of the corresponding C methods
+and notes any functional differences where necessary.
+
+
+<h3>Sample Program</h3>
+
+To introduce the interface, this sample C service demonstrates what a
+simple service might look like:
+
+<p>
+<table border=1>
+<td>
+<pre>
+#include &lt;stdio.h&gt;
+
+#include &lt;pluton/service_C.h&gt;
+
+int
+main(int argc, char** argv)
+{
+  const char* ptr;
+  int len;
+  char response[100];
+
+  if (!pluton_service_C_initialize()) exit(1);
+
+  printf("Starting with API Version: %s\n", pluton_service_C_getAPIVersion());
+
+  while (pluton_service_C_getRequest()) {
+
+    pluton_service_C_getRequestData(&ptr, &len);
+
+    sprintf(response, "Request Length = %d\n", len);
+
+    pluton_service_C_sendResponse(response, strlen(response));
+  }
+
+  pluton_service_C_terminate();
+
+  exit(0);
+}
+</pre>
+</table>
+
+<p>
+Some observations about this sample program that are relevant to all C
+services are:
+
+<ul>
+<li>The service include file is called
+<code>&lt;pluton/service_C.h&gt;</code>
+
+<li>All service methods names are the same as the C++ names prefixed
+with <code>"pluton_service_C_"</code> to avoid namespace collision. A
+bit ugly, yes.
+
+<li>As with the other service APIs, the service objects are not exposed to the
+C programmer
+
+<li>data values are exchanged as \0 terminated C-strings where possible or
+as a pointer/length pair when the data may not be \0 terminated. This
+mainly relates to the request and response data.
+
+<li>All returned pointers and the data they pointto only valid up
+until the next call to into this library.
+
+</ul>
+
+
+<h3>Compilation and Libraries</h3>
+
+To compile and execute a C program using this interface, compiler and
+linker need access to the standard include directory and the C wrapper
+library. The following sample <code>Makefile</code> shows how this
+might be done:
+
+<p>
+<table border=1>
+<td>
+<pre>
+CFLAGS=-I/usr/local/include
+
+yourProg:     yourProg.o
+        $(CC) -o yourProg yourProg.o -lplutonC -L/usr/local/lib
+</pre>
+</table>
+
+
+<h3>Service Methods</h3>
+
+In all cases, services must have a <p>
+
+<pre>
+#include &lt;pluton/service_C.h&gt;
+</pre>
+
+<p>
+line in their program to pull in the prototype definitions.
+
+<p>This table identifies all the available C methods and the
+corresponding C++ methods. The C methods link to their syntactic
+definition.
+
+<p>
+<table border=1>
+<tr><th>C method<th>Corresponding C++ method</tr>
+
+<tr><td><a href=#getAPIVersion>pluton_service_C_getAPIVersion</a><td><a href=serviceAPI.html#getAPIVersion>pluton::service::getAPIVersion</a></tr>
+<tr><td><a href=#getClientName>pluton_service_C_getClientName</a><td><a href=serviceAPI.html#getClientName>pluton::service::getClientName</a></tr>
+<tr><td><a href=#getContext>pluton_service_C_getContext</a><td><a href=serviceAPI.html#getContext>pluton::service::getContext</a></tr>
+<tr><td><a href=#getFaultCode>pluton_service_C_getFaultCode</a><td><a href=fault.html#getFaultCode>pluton::fault::getFaultCode</a></tr>
+<tr><td><a href=#getFaultMessage>pluton_service_C_getFaultMessage</a><td><a href=fault.html#getMessage>pluton::fault::getMessage</a></tr>
+<tr><td><a href=#getRequest>pluton_service_C_getRequest</a><td><a href=serviceAPI.html#getRequest>pluton::service::getRequest</a></tr>
+<tr><td><a href=#getRequestData>pluton_service_C_getRequestData</a><td><a href=serviceAPI.html#getRequestData>pluton::service::getRequestData</a></tr>
+<tr><td><a href=#getSerializationType>pluton_service_C_getSerializationType</a><td><a href=serviceAPI.html#getSerializationType>pluton::service::getSerializationType</a></tr>
+<tr><td><a href=#getServiceApplication>pluton_service_C_getServiceApplication</a><td><a href=serviceAPI.html#getServiceApplication>pluton::service::getServiceApplication</a></tr>
+<tr><td><a href=#getServiceFunction>pluton_service_C_getServiceFunction</a><td><a href=serviceAPI.html#getServiceFunction>pluton::service::getServiceFunction</a></tr>
+<tr><td><a href=#getServiceKey>pluton_service_C_getServiceKey</a><td><a href=serviceAPI.html#getServiceKey>pluton::service::getServiceKey</a></tr>
+<tr><td><a href=#getServiceVersion>pluton_service_C_getServiceVersion</a><td><a href=serviceAPI.html#getServiceVersion>pluton::service::getServiceVersion</a></tr>
+<tr><td><a href=#hasFault>pluton_service_C_hasFault</a><td><a href=serviceAPI.html#hasFault>pluton::service::hasFault</a></tr>
+<tr><td><a href=#initialize>pluton_service_C_initialize</a><td><a href=serviceAPI.html#initialize>pluton::service::initialize</a></tr>
+<tr><td><a href=#sendFault>pluton_service_C_sendFault</a><td><a href=serviceAPI.html#sendFault>pluton::service::sendFault</a></tr>
+<tr><td><a href=#sendResponse>pluton_service_C_sendResponse</a><td><a href=serviceAPI.html#sendResponse>pluton::service::sendResponse</a></tr>
+<tr><td><a href=#terminate>pluton_service_C_terminate</a><td><a href=serviceAPI.html#terminate>pluton::service::terminate</a></tr>
+
+</table>
+<p>
+
+
+<h4><a name=getAPIVersion>pluton_service_C_getAPIVersion()</h4>
+
+Return the service API version as a C-string as per <a
+href=serviceAPI.html#getAPIVersion>pluton::service::getAPIVersion</a>.
+
+<h5>Syntax</h5>
+
+<pre>
+extern const char*    pluton_service_C_getAPIVersion();
+</pre>
+
+<h4<a name=getClientName>pluton_service_C_getClientName()</h4>
+
+Return a C-string of the client name of the requesting client as per
+<a
+href=serviceAPI.html#getClientName>pluton::service::getClientName</a>.
+
+<h5>Syntax</h5>
+
+<pre>
+extern const char*    pluton_service_C_getClientName();
+</pre>
+
+<h4<a name=getContext>pluton_service_C_getContext()</h4>
+
+Return the value of the context string for the supplied key as per <a
+href=serviceAPI.html#getContext>pluton::service::getContext</a>.
+Returns NULL if the context key does not exist in the current request.
+
+<h5>Syntax</h5>
+
+<pre>
+extern const char*    pluton_service_C_getContext(const char* key);
+</pre>
+
+<h4<a name=getFaultCode>pluton_service_C_getFaultCode()</h4>
+
+Return the integer code of the last fault as per <a
+href=fault.html#getFaultCode>pluton::fault::getFaultCode</a>.
+
+Only valid if a fault is
+indicated with <a href=#hasFault>pluton_service_C_hasFault</a>.
+
+<h5>Syntax</h5>
+
+<pre>
+extern int            pluton_service_C_getFaultCode();
+</pre>
+
+<h4<a name=getFaultMessage>pluton_service_C_getFaultMessage()</h4>
+
+Return the C-string describing the last fault as per <a
+href=fault.html#getMessage>pluton::fault::getMessage</a>.  Only valid
+if a fault is indicated with <a
+href=#hasFault>pluton_service_C_hasFault</a>.
+
+<p>
+
+<h5>Syntax</h5>
+
+<pre>
+extern const char*    pluton_service_C_getFaultMessage(const char* preMessage, int longFormat);
+</pre>
+
+<code>preMessage</code> and <code>longFormat</code> influence the
+formatting of the message as with <a
+href=fault.html#getMessage>pluton::fault::getMessage</a>.
+
+<h4<a name=getRequest>pluton_service_C_getRequest()</h4>
+
+Block until the next request is available for processing as per <a
+href=serviceAPI.html#getRequest>pluton::service::getRequest</a>.
+Return <code>true</code> if a request is available, else false if no
+more requests are available for this service.
+
+<h5>Syntax</h5>
+
+<pre>
+extern int            pluton_service_C_getRequest();
+</pre>
+
+<h4<a name=getRequestData>pluton_service_C_getRequestData()</h4>
+
+Return the pointer and length of the current request data as per <a
+href=serviceAPI.html#getRequestData>pluton::service::getRequestData</a>.
+The return values are only valid after a call to <a
+href=#getRequest>pluton_service_C_getRequest()</a> and are invalid on
+a subsequent call to <a
+href=#getRequest>pluton_service_C_getRequest()</a>.
+
+<h5>Syntax</h5>
+
+<pre>
+extern void           pluton_service_C_getRequestData(const char** ptr, int* len);
+</pre>
+
+<h4<a name=getSerializationType>pluton_service_C_getSerializationType()</h4>
+
+Return the serialization type of the request as per <a
+href=serviceAPI.html#getSerializationType>pluton::service::getSerializationType</a>.
+
+<h5>Syntax</h5>
+
+<pre>
+pluton_C_serializationType	pluton_service_C_getSerializationType();
+</pre>
+
+The actual types are defined as an <code>enum</code> in
+&lt;pluton/service_C.h&gt;
+
+<h4<a name=getServiceApplication>pluton_service_C_getServiceApplication()</h4>
+
+Return the Application Name of the current service request as per <a
+href=serviceAPI.html#getServiceApplication>pluton::service::getServiceApplication</a>.
+
+The return pointer is invalid on subsequent calls to <a
+href=#getRequest>pluton_service_C_getRequest()</a>
+
+<h5>Syntax</h5>
+
+<pre>
+extern const char*    pluton_service_C_getServiceApplication();
+</pre>
+
+<h4<a name=getServiceFunction>pluton_service_C_getServiceFunction()</h4>
+
+Return the Function Name of the current service request as per <a
+href=serviceAPI.html#getServiceFunction>pluton::service::getServiceFunction</a>.
+
+The return pointer is invalid on subsequent calls to <a
+href=#getRequest>pluton_service_C_getRequest()</a>
+
+<h5>Syntax</h5>
+
+<pre>
+extern const char*    pluton_service_C_getServiceFunction();
+</pre>
+
+<h4<a name=getServiceKey>pluton_service_C_getServiceKey()</h4>
+
+Return the <a href=serviceKey.html>Service Key</a> of the current
+service request as per <a
+href=serviceAPI.html#getServiceKey>pluton::service::getServiceKey</a>.
+
+The return pointer is invalid on subsequent calls to <a
+href=#getRequest>pluton_service_C_getRequest()</a>
+
+<h5>Syntax</h5>
+
+<pre>
+extern const char*    pluton_service_C_getServiceKey();
+</pre>
+
+<h4<a name=getServiceVersion>pluton_service_C_getServiceVersion()</h4>
+
+Return the integer service version of the current service request as
+per <a
+href=serviceAPI.html#getServiceVersion>pluton::service::getServiceVersion</a>.
+
+
+<h5>Syntax</h5>
+
+<pre>
+extern unsigned int   pluton_service_C_getServiceVersion();
+</pre>
+
+<h4<a name=hasFault>pluton_service_C_hasFault()</h4>
+
+Return true if the last call to generated a fault as per <a
+href=serviceAPI.html#hasFault>pluton::service::hasFault</a>.
+
+<h5>Syntax</h5>
+
+<pre>
+extern int            pluton_service_C_hasFault();
+</pre>
+
+<h4<a name=initialize>pluton_service_C_initialize()</h4>
+
+<h5>Syntax</h5>
+
+Initialize the service subsystem as per <a
+href=serviceAPI.html#initialize>pluton::service::initialize</a>.
+Return false and make a fault available if the initialization
+fails. This must be the first called made to the C service API.
+
+<pre>
+extern int            pluton_service_C_initialize();
+</pre>
+
+<h4<a name=sendFault>pluton_service_C_sendFault()</h4>
+
+Send a fault to the client making the service request as per <a
+href=serviceAPI.html#sendFault>pluton::service::sendFault</a>. The
+supplied text parameter (<code>txt</code>) is treated as a \0 terminated
+C-string.
+
+<h5>Syntax</h5>
+
+<pre>
+extern int            pluton_service_C_sendFault(unsigned int code, const char* txt);
+</pre>
+
+<h4<a name=sendResponse>pluton_service_C_sendResponse()</h4>
+
+Send a response to the client making the service request as per <a
+href=serviceAPI.html#sendResponse>pluton::service::sendResponse</a>.
+
+There are no constraints on the content pointed to by
+<code>ptr</code>, but obviously it should be an agreed format will the
+callers.
+
+<h5>Syntax</h5>
+
+<pre>
+extern int            pluton_service_C_sendResponse(const char* ptr, int len);
+</pre>
+
+<h4<a name=terminate>pluton_service_C_terminate()</h4>
+
+Terminate the service subsystem previously initialized, as per <a
+href=serviceAPI.html#terminate>pluton::service::terminate</a>.
+
+<h5>Syntax</h5>
+
+<pre>
+extern void           pluton_service_C_terminate();
+</pre>
+
+
+<p>
+<hr>
+<font size=-1>
+$Id: cserviceAPI.html 260483 2009-10-16 18:47:56Z markd $
+&copy; Copyright Yahoo! Inc, 2007, 2008, 2009
+</font>
+</body>
+</html>

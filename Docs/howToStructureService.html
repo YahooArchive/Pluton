@@ -1,0 +1,167 @@
+<html>
+<head>
+<link rel="shortcut icon" href=images/pluto-symbol.jpg type="image/x-icon" />
+<title>
+The Pluton Framework: How To Structure Your Service Program
+</title>
+</head>
+
+<body>
+
+<center>
+<a href=index.html>
+<img height=100 src=images/pluto-charon.jpg ALT="[Pluto Charon Image]">
+</a>
+</center>
+
+<h2 align=center>The Pluton Framework: How To Structure Your Service Program</h2>
+<ol>
+<li><a href=#Introduction>Introduction</a>
+<li><a href=#TheModel>The model service program</a>
+<li><a href=#exitNonZero>When to <code>exit()</code> with a non-zero exit code</a>
+<li><a href=#exitZero>When to <code>exit(0)</code></a>
+<li><a href=#whenToFault>When to return a fault</a>
+</ol>
+
+<p>
+
+<a name=Introduction>
+<h3>Introduction</h3>
+
+If you've seen the sample service program in
+the <a href=serviceAPI.html>C++ Service API</a>, you might be
+wondering why there is a need for any discussion about how to
+structure such a simple program. While the simplicity of a service
+program is mostly self-evident, there are subtleties around faults,
+when to exit and what exit codes to use, that a well-behaved service
+program should adhere to.
+
+<p>The reason for emphasizing the distinction between faults,
+<code>exit(0)</code> and exit non-zero, is that these are well defined
+ways to communicate with the client and the
+<code>pluton_manager</code> and doing this the <i>right way</i>
+provides a consistent and predictable experience for clients as well as
+assisting in diagnosing services.
+
+<a name=TheModel>
+<h3>The model service program</h3>
+
+The sample service program in
+<a href=serviceAPI.html>C++ Service API</a> demonstrates all the
+attributes of a model service program, as it:
+
+<ul>
+<li>Is simple
+<li>Relies on a new instances to re-initialize rather than attempting to re-initialize internally
+<li>Initializes prior to accepting requests
+<li>Uses <code>exit(0)</code> to communicate to
+  the <code>pluton_manager</code> that starting a new instance is
+  likely to succeed
+<li>Uses <code>non-zero exit codes</code> to communicate to
+  the <code>pluton_manager</code> that starting a new instance is
+  <bold>unlikely</bold> to succeed due to some systemic error
+<li>Uses fault returns to indicate application specific errorsto the
+ client
+</ul>
+
+
+<a name=exitNonZero>
+<h3>When to <code>exit()</code> with a non-zero exit code</h3>
+
+The rule-of-thumb is that a service should exit non-zero if fixing the
+cause of the error requires human intervention. For example, if a
+configuration file is missing or a hostname does not exist; these are
+good reasons to exit non-zero. Conversely, if a network connection to
+a server is temporarily lost, that is not a good reason to exit
+non-zero.
+
+<p>The reason for this rule is that the <code>pluton_manager</code>
+specifically interprets a non-zero exit as an indication that the
+service is un-recoverably failing. The service is saying, in effect,
+that there is no point in re-starting it. Consequently, the
+<code>pluton_manager</code> defers starting new instances regardless
+of demand - for a configured amount of time (see the <a
+href=configuration.html#exec-failure-backoff>exec-failure-backoff</a>
+configuration parameter for details).
+
+<p>
+While a service is in this <i>un-recoverable</i> mode, any client
+requests are automatically, and immediately, closed.
+The implication for clients is that they will get a failed response
+without delay when requests are made to an <i>un-recoverable</i>
+service.
+
+<p>If your service does exit non-zero, please use exit codes in the
+range 1 to 10. The <code>pluton_manager</code> uses exit codes above
+10 to communicate why a <code>fork()/exec()</code> sequence failed.
+
+<p>It is also good practice for a service to write a message to STDERR
+explaining the reason for the non-zero exit as these messages are
+transferred to the log of the <code>pluton_manager</code>.
+
+<a name=exitZero>
+<h3>When to <code>exit(0)</code></H3>
+
+The main reason for exiting with a zero exit code is if the service
+needs to re-initialize; perhaps due to the loss of a persistent
+connection or the loss of some other persistent resource the service
+relies on.
+
+<p>While a service <i>can</i> choose to re-initialize in-line it is
+most often simpler to just <code>exit(0)</code> and let
+the <code>pluton_manager</code> start a fresh instance. More
+importantly, unless the service is confident that re-initialization
+will occur promptly, the re-initializing service will typically cause
+the caller to wait for the duration of the re-initialization in
+addition to the duration of processing the request. In general, it is
+simpler and faster to allow the client retry mechanism to do the
+retrying and connect to another service instance.
+
+<p>Another reason for discouraging re-initialization within a service
+is that an exit(0) is visible in the statistics logged by the
+<code>pluton_manager</code> whereas re-initialization within the
+service will not be visible in a consistent way.
+
+
+<p>When a service decides to exit while processing a request, the
+service
+<b>should not send a fault to the client</b>. It should simply exit so
+that the client library will automatically retry the attempt.  The
+reason for this is that the clientAPI <b>always</b> retries a request
+at least once if the request fails without a response, but obviously a
+client request will not be retried by the framework if there is a
+valid fault response.
+
+
+<a name=whenToFault>
+<h3>When to return a Fault</h3>
+
+Faults are intended to tell the client that their request failed for
+business logic reasons entirely relating to their request data.
+
+<p>Faults are not intended to communicate interim problems with
+infrastructure or underlying services. Having said that, this is a
+guideline more than a hard-and-fast rule; ultimately it's a question
+of what interaction works best for a given service.
+
+<p>Generally speaking, if anything goes wrong with a request that does
+<i>not</i> warrant exiting based on the earlier guidelines, then a fault
+should be returned.
+
+<p>Finally, you should avoid returning fault information in the
+response data. The first reason is that the
+<code>pluton_manager</code> records the number of faults created by a
+service and that statistic is likely to be of use to you! The second
+reason is that fault information is purposely independent of the
+request serialization whereas response data is likely to be
+serialization dependent which complicates error processing for
+clients.
+
+<p>
+<hr>
+<font size=-1>
+$Id: howToStructureService.html 260483 2009-10-16 18:47:56Z markd $
+&copy; Copyright Yahoo! Inc, 2007
+</font>
+</body>
+</html>

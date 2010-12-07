@@ -1,0 +1,2 @@
+maximum-retries		1		# Re-queue a request to another service
+exec /bin/echo

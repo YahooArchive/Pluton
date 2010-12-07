@@ -1,0 +1,255 @@
+<html>
+<head>
+<link rel="shortcut icon" href=images/pluto-symbol.jpg type="image/x-icon">
+<title>
+The Pluton Framework: Thoughts for the Future
+</title>
+</head>
+
+<body>
+
+<center>
+<a href=index.html>
+<img height=100 src=images/pluto-charon.jpg ALT="[Pluto Charon Image]">
+</a>
+</center>
+
+<h2 align=center>The Pluton Framework: Thoughts for the Future</h2>
+
+In no particular order...
+<ul>
+<li><a href=#HelperThread>Helper thread in client library</a>
+<li><a href=#Reentrant><strike>Support re-entrant client calls (for
+      better thread support)</strike></a>
+<img src=http://l.yimg.com/us.yimg.com/i/nt/ic/ut/bsc/new12_1.gif>Implemented: 01Aug08
+<li><a href=#NetworkProxy>Network Proxy</a>
+<img src=http://l.yimg.com/us.yimg.com/i/nt/ic/ut/bsc/new12_1.gif>Experimental: 18Mar07
+<li><a href=#streaming>Streaming Protocol Support</a>
+<li><a href=#pipeline>Pipeline requests</a>
+<li><a href=#wildcards>More flexible wild carding</a>
+<li><a href=#mqueue><strike>Using IEEE Std 1003.1-2001 mqueue instead
+      of named sockets</strike></a>
+<img src=http://l.yimg.com/us.yimg.com/i/nt/ic/ut/bsc/new12_1.gif>Discarded: 14Nov07
+</ul>
+
+
+
+<h3><a name=HelperThread>Helper thread in the client library</h3>
+
+Rather than doing opportunistic I/O whenever the caller gives control
+to the client library, a more effective method would be to create a
+thread that manages the I/O exchange. It could be attached to the
+underlying singleton with the only communication point likely to be a
+queue of new and completed requests. This is nothing more than a
+speculative latency enhancement.
+
+
+<h3><a name=Reentrant>Support re-entrant client calls (for better thread support)</h3>
+
+<font color=red>
+This idea has been adopted and the client library is re-entrant
+starting with release 0.50. The original discussion has been left
+intact for hysterical purposes. While similar, this discussion does <i>not</i>
+accurately reflect the final implementation of
+the <a href=threading.html>pluton client library thread interface</a>.
+</font>
+
+<p>
+Currently, the client library is not re-entrant and goes to some trouble to ensure that
+re-entrant calls are detected so that potential corruption and mysterious behavior is averted.
+
+However, if Java programmers want to start using pluton, then it's likely that they will also
+use threads. In that case, the client library should probably be made efficiently re-entrant.
+These are notes document one way of doing this:
+
+<ul>
+<li>Via a new static setter method similar to 
+<a href=clientAPINonBlock.html#setPollProxy><code>pluton::client::setPollProxy()</code></a>,
+have the caller supply a set of mutex functions - probably with
+prototypes similar to, or matching the union of
+<code>pthread_mutex_*</code> from pthreads and <code>st_mutex_*</code>
+from <a href=http://state-threads.sourceforge.net/index.html>State
+Threads</a>.  The caller has to specifically call the setter function
+to get mutex support as it's off by default.
+
+<li>All operations on the singleton queue have to be protected by a
+queue mutex. Probably best to formalize the queue operations into a
+class and have the class manage the mutex.
+
+<li>All operations on the perCallerClient have to be protected by a
+perCallerClient mutex.
+
+<li>Around clientImpl.cc::progressRequest()::905 the <code>queueCount
+= ...</code> and <code>sizePollArray()</code> calls need to be moved
+<i>inside</i> the <code>while (_todoQueue)</code> loop as the queue
+count can change on each iteration if other threads can be adding
+requests.
+
+<li>Does the singleton fault need to be protected? Possibly. Should it
+be moved out to the perCallerClient? Possibly too - especially since
+faults can be on a per-call basis, such as adding an affinity request
+when the request does not have previous affinity.
+
+<li>Assume and define that the request is mutex protection.
+
+<li>Does <code>perCallerClient::sizePollArray()</code> need mutex
+protection?
+
+<li>Still need "no reentrancy" protection on <code>perCallerClient</code>
+
+<li>
+</ul>
+
+<h3><a name=NetworkProxy>Network Proxy</h3>
+
+<strike>
+This is probably the number one priority once basic functionality,
+stability and performance are satisfactory.
+</strike>
+<p>
+
+<font color=red size+=3>Stop the press!
+<a href=commands.html#plTransmitter><code>plTransmitter</code></a>
+and
+<a href=commands.html#plReceiver><code>plReceiver</code></a>
+provide experimental support for
+exchanging requests transparently with a remote host.
+</font>
+
+
+<p>The idea is that a single program - possibly written using state
+threads and yfor - is run as a service which, rather than execute the
+service request locally, establishes a connection to a set of remote
+servers which run the actual service. This is completely transparent
+to the calling application - it simply makes a service request and
+gets a response. What machine the service runs on, is transparent to
+the caller.
+
+<p>
+Perhaps something like this:
+
+<p>
+
+<center>
+<img height=480 src=images/plutonRemoteProxy.jpg ALT="[Remote Proxy]">
+</center>
+
+
+<h3><a name=streaming>Streaming support in the client/service protocol</h3>
+
+The APIs currently assumed known sized requests and responses that can
+be encapsulated into a single packet. Streaming protocols do not fit
+well with this model.
+
+<p>A possible enhancement to the pluton protocol is to treat the
+request/response as a header to a streaming request/response and pass
+the connected socket to the client/service at that point and let them
+handle any consequential streaming exchange.
+
+<p>A second, simpler option is to provide interfaces on both sides
+that allow multiple pluton::responseDataNT types in a response. The
+slightly tricky part with this is that a naive client would need to
+re-assemble the multiple netstrings into contiguous data. In other
+words, such a stream would hurt a naive client. This is tricky because
+the client currently receives the response data in-situ in a netstring
+and simply presents the pointer and length to the client.
+
+<p>Streaming is attractive because it potentially makes the size of
+the service independent of the response data size. Consider a service
+that does an HTTP request, it can stream each chunk as it arrives back
+to the client if streaming is supported. With no interim memory costs,
+the size of such a service remains static and small.
+
+
+<h3><a name=pipeline>Pipeline requests</h3>
+
+Instead of just being able to call a single service like this:
+
+<pre>
+	C.addRequest("Mail.newMail.0.XML", req);
+</pre>
+
+what if a client could go like this
+
+<pre>
+	C.addRequest("convert.XML.0.JSON | Mail.newMail.0.XML | someother.service.. ", req);
+</pre>
+
+where the response is passed on to the next service in the pipeline
+with the final service returning their response to the client?
+
+<p>This could actually be done entirely transparently to the service by
+having the <code>sendResponse()</code> serviceAPI method know that it
+has to forward instead of return the response - perhaps via a
+"<code>pluton.</code>" Context Variable.
+
+
+<p><em>Implementation Detail:</em> For local services, the forwarding
+would have to <i>fdpass</i> the file descriptor of the connected
+client which is pretty straightforward. How that interacts with the
+Network Proxy suggestion, requires further thought.
+
+<p>There is a deadlock risk with supporting pipelined requests,
+whether explicitly within the framework or whether services invoke
+other services directly. What can happen is that service A may call
+service B and service B may call service A at a time when one of the
+services is at maximum-services. This will deadlock until one of the
+services comes available. If maximum-services is set to 1, or if all
+services are in this sequence, then no service will ever come
+available and the client request will timeout.
+
+<h3><a name=wildcards>More flexible wild cards</h3>
+
+Some people want greater wild carding flexibility. For example, beyond
+<code>Function</code> wild carding, some want
+<code>Serialization</code> wild carding. The main issue with extending
+the service lookup wild carding is that it creates ambiguities. For
+example, if you have the following two services:
+
+<pre>
+	Application..0.XML
+	Application.Get.0.
+</pre>
+
+and a client makes a request to <code>Application.Get.0.XML</code>,
+which service should receive the request?
+
+
+<h3><a name=mqueue>Using IEEE Std 1003.1-2001 mqueue instead of named sockets</h3>
+
+<font color=red>
+This idea has been discarded for the following reasons:
+<p>
+<ul>
+<li>Minor: Not implemented on FBSD
+
+<li>Major: Each client needs a separate queue to get the
+response from the service. Clients would have to communicate the mqueue path via the
+request and the service would have to open that message queue to write
+the response which will likely obviate the performance benefits.
+
+</ul>
+
+</font>
+
+On Linux (RHEL4 and beyond) and FreeBSD (7.0 and beyond) there is a
+message queuing service available via <code>mq_send()</code>,
+<code>mq_receive()</code>, etc.
+
+<p>
+While there are a number of limitations to the <code>mqueue</code>
+service, such as maximum packet size and the need to establish queues
+for both services and clients, the performance looks promising
+compared to the named pipe exchange. On the dual P-4 RHEL4 machine
+used to generate these <a href=performance.html>performance
+results</a>, the <code>mqueue</code> exchanges for small messages are
+of the order of 100 times faster!
+
+<p>
+<hr>
+<font size=-1>
+$Id: future.html 260483 2009-10-16 18:47:56Z markd $
+&copy; Copyright Yahoo! Inc, 2007, 2008
+</font>
+</body>
+</html>

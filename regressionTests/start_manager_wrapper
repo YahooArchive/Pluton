@@ -1,0 +1,11 @@
+#! /bin/sh
+
+echo Starting Manager at `pwd`
+echo CMDLine=$*
+
+$rgBinPath/plutonManager $* &
+pid=$!
+echo $pid >data/manager.pid
+
+wait
+echo Manager Exit Status for $pid: $?

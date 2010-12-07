@@ -1,0 +1,2 @@
+exec			platform-services/echo
+maximum-processes	20

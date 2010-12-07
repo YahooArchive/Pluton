@@ -1,0 +1,85 @@
+<html>
+<head>
+<link rel="shortcut icon" href=images/pluto-symbol.jpg type="image/x-icon">
+<title>
+The Pluton Framework: Service Catalog
+</title>
+</head>
+
+<body>
+
+<center>
+<a href=index.html>
+<img height=100 src=images/pluto-charon.jpg ALT="[Pluto Charon Image]">
+</a>
+</center>
+
+<h2 align=center>The Pluton Framework: Service Catalog</h2>
+
+
+<h3>system.</h3>
+
+<ul>
+<li><a href=#system.echo><code>system.echo..raw</code></a> echos request data back to the client
+<li><a href=#system.curl><code>system.curl..raw</code></a> fetches a URL much like the
+<code>curl</code> command
+</ul>
+
+<h3>Mail.</h3>
+
+<h3>AddressBook.</h3>
+
+
+
+<table border=1>
+<tr><th>Name<td>system.echo.0.raw</tr>
+
+<tr valign=top><th>Description<td>
+Echo the exact contexts of the request data back as response data. The
+contents are not examined by this service.
+</tr>
+
+<tr valign=top><th>Context Variables<td>
+<ul>
+<li>echo.sleepMS - if a positive integer, sleep for this many milliseconds
+<li>echo.log - if present, log activity to clog
+</ul>
+</tr>
+
+<tr valign=top><th>Request Data<td>any</tr>
+<tr valign=top><th>Response Data<td>Copy of Request Data</tr>
+
+</table>
+
+<p>
+
+<table border=1>
+<tr><th>Name<td>system.curl.0.raw</tr>
+
+<tr valign=top><th>Description<td>
+Fetch a URL, much as the <code>curl</code> command does.
+</tr>
+
+<tr valign=top><th>Context Variables<td>*none*</tr>
+
+<tr valign=top><th>Request Data<td>getopt syntax. This service
+supports a subset of getopt options provided by <code>curl</code> to
+perform header insertion and similar. In
+particular,
+<pre>
+ [-ihL] [-A UserAgent] [-b cookieValue] [-e referrer] [-H header] [-U UserPass] URL
+</pre>
+See the <code>curl</code> command for a description of these options.
+</tr>
+<tr valign=top><th>Response Data<td>Raw data returned from URL fetch</tr>
+
+</table>
+
+<p>
+<hr>
+<font size=-1>
+$Id: catalog.html 260483 2009-10-16 18:47:56Z markd $
+&copy; Copyright Yahoo! Inc, 2007
+</font>
+</body>
+</html>

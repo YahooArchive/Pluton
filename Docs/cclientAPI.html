@@ -1,0 +1,844 @@
+<html>
+<head>
+<link rel="shortcut icon" href=images/pluto-symbol.jpg type="image/x-icon" />
+<title>
+The Pluton Framework: C Client API
+</title>
+</head>
+
+<body>
+
+<center>
+<a href=index.html>
+<img height=100 src=images/pluto-charon.jpg ALT="[Pluto Charon Image]">
+</a>
+</center>
+
+<h2 align=center>The Pluton Framework: C Client API</h2>
+
+<h3>Contents</h3>
+
+<ol>
+<li><a href=#Introduction>Introduction</a>
+<li><a href=#Sample>Sample Program</a>
+<li><a href=#Compilation>Compilation and Libraries</a>
+<li><a href=#ClientRequest>ClientRequest methods corresponding to <code>pluton::clientRequest</code></a>
+
+<ul>
+<li><a href=#requestNew>pluton_request_C_new</a>
+<li><a href=#requestDelete>pluton_request_C_delete</a>
+<li><a href=#requestReset>pluton_request_C_reset</a>
+<li><a href=#setRequestData>pluton_request_C_setRequestData</a>
+<li><a href=#setAttribute>pluton_request_C_setAttribute</a>
+<li><a href=#getAttribute>pluton_request_C_getAttribute</a>
+<li><a href=#clearAttribute>pluton_request_C_clearAttribute</a>
+<li><a href=#setContext>pluton_request_C_setContext</a>
+<li><a href=#getResponseData>pluton_request_C_getResponseData</a>
+<li><a href=#inProgress>pluton_request_C_inProgress</a>
+<li><a href=#hasFault>pluton_request_C_hasFault</a>
+<li><a href=#getFaultCode>pluton_request_C_getFaultCode</a>
+<li><a href=#getFaultText>pluton_request_C_getFaultText</a>
+<li><a href=#getServiceName>pluton_request_C_getServiceName</a>
+<li><a href=#setClientHandle>pluton_request_C_setClientHandle</a>
+<li><a href=#getClientHandle>pluton_request_C_getClientHandle</a>
+</ul>
+
+<li><a href=#Client>Client methods corresponding to <code>pluton::client</code></a>
+
+<ul>
+<li><a href=#clientNew>pluton_client_C_new</a>
+<li><a href=#clientDelete>pluton_client_C_delete</a>
+<li><a href=#clientReset>pluton_client_C_reset</a>
+<li><a href=#getAPIVersion>pluton_client_C_getAPIVersion</a>
+<li><a href=#initialize>pluton_client_C_initialize</a>
+<li><a href=#clientHasFault>pluton_client_C_hasFault</a>
+<li><a href=#setDebug>pluton_client_C_setDebug</a>
+<li><a href=#setTimeoutMilliSeconds>pluton_client_C_setTimeoutMilliSeconds</a>
+<li><a href=#getTimeoutMilliSeconds>pluton_client_C_getTimeoutMilliSeconds</a>
+<li><a href=#addRequest>pluton_client_C_addRequest</a>
+<li><a href=#executeAndWaitSent>pluton_client_C_executeAndWaitSent</a>
+<li><a href=#executeAndWaitAll>pluton_client_C_executeAndWaitAll</a>
+<li><a href=#executeAndWaitOne>pluton_client_C_executeAndWaitOne</a>
+<li><a href=#executeAndWaitAny>pluton_client_C_executeAndWaitAny</a>
+</ul>
+
+</ol>
+
+<a name=Introduction>
+<h3>Introduction</h3>
+
+This C API is a thin wrapper around the
+C++ <a href=clientAPI.html>client</a> APIs. The primary target
+customers for this API are expected to be language wrappers
+programmers - particularly JNI and perhaps Perl. By preference, most
+people will normally use the C++ <a href=clientAPI.html>client</a>
+APIs.
+
+<p>
+While this C API has been made as similar as possible to the C++ API,
+the language differences necessarily mean a number of differences, eg,
+references and <code>std::string</code>
+<p>
+
+C programmers should familiarize themselves with the C++
+Client APIs as the semantics of the methods are discussed there, whereas this
+document is constrained to describing the syntax of the corresponding C methods
+and notes any functional differences where necessary.
+
+<a name=Sample>
+<h3>Sample Program</h3>
+
+To introduce the interface, this sample C program demonstrates what a
+simple client might look like:
+
+<p>
+<table border=1>
+<td>
+<pre>
+#include &lt;stdio.h&gt;
+
+#include &lt;pluton/client_C.h&gt;
+
+int
+main(int argc, char** argv)
+{
+  pluton_client_C_obj* C;
+  pluton_request_C_obj* R0;
+  int res;
+  const char* rp;
+  int rl;
+
+  /* Create the Client container using the default lookup map */
+
+  C = pluton_client_C_new("tc_1", 4000);
+  res = pluton_client_C_initialize(C, 0);
+  if (res != 0) exit(1);
+
+  /*
+   * Create a clientRequest and add our request data,  attributes 
+   * and context.
+   */
+
+  R0 = pluton_request_C_new();
+  pluton_request_C_setRequestData(R0, "Echo Request 0", 14, 0);
+  pluton_request_C_setAttribute(R0, pluton_request_C_noRemoteAttr);
+  pluton_request_C_setContext(R0, "echo.sleepMS", "600", 3);
+
+  /* Add request into container and wait for completion */
+
+  pluton_client_C_addRequest(C, "system.echo.0.raw", R0);
+
+  res = pluton_client_C_executeAndWaitSent(C);
+  if (res != 1) exit(2);
+
+  /*
+   * Get the pointer and length of the response data and write
+   * it to stderr.
+   */
+
+  rp = 0;
+  rl = 0;
+  res = pluton_request_C_getResponseData(R0, &rp, &rl);
+
+  if (rp && rl) {
+    write(2, rp, rl);
+    write(2, "\n", 1);
+  }
+
+
+  /* Delete the objects created by the client library */
+
+  pluton_request_C_delete(R0);
+  pluton_client_C_delete(C);
+
+  exit(0);
+}
+</pre>
+</table>
+
+<p>
+Some observations about this sample program that are relevant to all C
+services are:
+
+<ul>
+<li>The client include file is called
+<code>&lt;pluton/client_C.h&gt;</code>
+
+<li>Routines prefixed with <code>pluton_client_</code>
+  correspond to the
+  <a href=clientAPI.html#constructinitialize><code>pluton::client</code></a>
+  C++ methods
+
+<li>Routines prefixed with <code>pluton_request_</code>
+  correspond to the
+  <a href=clientAPI.html#preparing><code>pluton::clientRequest</code></a>
+  C++ methods
+
+<li>There are <i>new</i> and <i>delete</i> routines which approximate
+  the creation and destruction of C++ objects. Callers should only use
+  these routines to create and destroy the pluton objects. Never
+  use <code>malloc()</code> or <code>free()</code> on these objects.
+
+<li>The first parameter for most of the client routines is a pointer
+  to the opaque <code>pluton_client_C_obj</code> object.
+
+<li>
+The first parameter for most of the clientRequest routines is a pointer
+  to the opaque <code>pluton_request_C_obj</code> object.
+
+<li>Data values are exchanged as \0 terminated C-strings where possible or
+as a pointer/length pair when the data may not be \0 terminated. This
+mainly relates to the request and response data.
+
+<li>All returned pointers and the data they point to are only valid up
+until the next call into this library.
+
+</ul>
+
+
+<a name=Compilation>
+<h3>Compilation and Libraries</h3>
+
+To compile and execute a C program using this interface, compiler and
+linker need access to the standard include directory and the C wrapper
+library. The following sample <code>Makefile</code> shows how this
+might be done:
+
+<p>
+<table border=1>
+<td>
+<pre>
+CFLAGS=-I/usr/local/include
+
+yourProg:     yourProg.o
+        $(CC) -o yourProg yourProg.o -lplutonC -L/usr/local/lib
+</pre>
+</table>
+
+
+<a name=ClientRequest>
+<h3>ClientRequest methods corresponding to <code>pluton::clientRequest</code></h3>
+
+In all cases, services must have a <p>
+
+<pre>
+#include &lt;pluton/service_C.h&gt;
+</pre>
+
+<p>
+line in their program to pull in the prototype definitions.
+
+<p>This table identifies all the available C methods and the corresponding C++
+methods. The C methods link to their syntactic definition.
+Almost all methods pass a pointer to the
+opaque <code>pluton_request_C_obj</code> as the first
+parameter. The <code>pluton_request_C_obj</code> object is created by 
+<a href=#requestNew>pluton_request_C_new</a> and destroyed by
+<a href=#requestDelete>pluton_request_C_delete</a>.
+
+
+<p>
+<table border=1>
+<tr><th>C method<th>Corresponding C++ method</tr>
+
+<tr><td<a href=#requestNew>pluton_request_C_new</a><td><a href=clientAPI.html#preparing>pluton::clientRequest constructor</a></tr>
+<tr><td<a href=#requestDelete>pluton_request_C_delete</a><td><a href=clientAPI.html#preparing>pluton::clientRequest destructor</a></tr>
+<tr><td<a href=#requestReset>pluton_request_C_reset</a><td><a href=clientAPI.html#requestReset>pluton::clientRequest::reset</a></tr>
+<tr><td<a href=#setRequestData>pluton_request_C_setRequestData</a><td><a href=clientAPI.html#setRequestData>pluton::clientRequest::setRequestData</a></tr>
+<tr><td<a href=#setAttribute>pluton_request_C_setAttribute</a><td><a href=clientAPI.html#setAttribute>pluton::clientRequest::setAttribute</a></tr>
+<tr><td<a href=#getAttribute>pluton_request_C_getAttribute</a><td><a href=clientAPI.html#getAttribute>pluton::clientRequest::getAttribute</a></tr>
+<tr><td<a href=#clearAttribute>pluton_request_C_clearAttribute</a><td><a href=clientAPI.html#clearAttribute>pluton::clientRequest::clearAttribute</a></tr>
+<tr><td<a href=#setContext>pluton_request_C_setContext</a><td><a href=clientAPI.html#setContext>pluton::clientRequest::setContext</a></tr>
+<tr><td<a href=#getResponseData>pluton_request_C_getResponseData</a><td><a href=clientAPI.html#getResponseData>pluton::clientRequest::getResponseData</a></tr>
+<tr><td<a href=#inProgress>pluton_request_C_inProgress</a><td><a href=clientAPI.html#inProgress>pluton::clientRequest::inProgress</a></tr>
+<tr><td<a href=#hasFault>pluton_request_C_hasFault</a><td><a href=clientAPI.html#hasFault>pluton::clientRequest::hasFault</a></tr>
+<tr><td<a href=#getFaultCode>pluton_request_C_getFaultCode</a><td><a href=clientAPI.html#getFaultCode>pluton::clientRequest::getFaultCode</a></tr>
+<tr><td<a href=#getFaultText>pluton_request_C_getFaultText</a><td><a href=clientAPI.html#getFaultText>pluton::clientRequest::getFaultText</a></tr>
+<tr><td<a href=#getServiceName>pluton_request_C_getServiceName</a><td><a href=clientAPI.html#getServiceName>pluton::clientRequest::getServiceName</a></tr>
+<tr><td<a href=#setClientHandle>pluton_request_C_setClientHandle</a><td><a href=clientAPI.html#setClientHandle>pluton::clientRequest::setClientHandle</a></tr>
+<tr><td<a href=#getClientHandle>pluton_request_C_getClientHandle</a><td><a href=clientAPI.html#getClientHandle>pluton::clientRequest::getClientHandle</a></tr>
+
+</table>
+<p>
+
+
+<a name=requestNew>
+<h4>pluton_request_C_new()</h4>
+
+Create a container for the <code>pluton::clientRequest</code> object and return an opaque pointer of
+type <code>pluton_request_C_obj</code>. The correct (and only) way to delete this object is to
+call <a href=#requestDelete>pluton_request_C_delete</a>.
+
+<p>The <code>pluton_request_C_obj</code> pointer is needed for
+  virtually all other methods.
+<h5>Syntax</h5>
+
+<pre>
+	extern pluton_request_C_obj*   pluton_request_C_new();
+</pre>
+
+<a name=requestDelete>
+<h4>pluton_request_C_delete()</h4>
+
+Delete the object previously created by <a href=#clientNew>pluton_request_C_new</a>.
+
+<h5>Syntax</h5>
+
+<pre>
+	extern void     pluton_request_C_delete(pluton_request_C_obj*);
+</pre>
+
+The caller is responsible for destroying all objects created by calls
+to <a href=#clientNew>pluton_request_C_new</a>.
+
+<a name=requestReset>
+<h4>pluton_request_C_reset()</h4>
+
+
+See <a href=clientAPI.html#requestReset>pluton::clientRequest::reset</a> for semantics.
+
+<h5>Syntax</h5>
+
+<pre>
+	extern void     pluton_request_C_reset(pluton_request_C_obj*);
+</pre>
+
+
+
+<a name=setRequestData>
+<h4>pluton_request_C_setRequestData()</h4>
+
+See <a href=clientAPI.html#setRequestData>pluton::clientRequest::setRequestData</a> for
+semantics. There is only one fingerprint for this method which
+contrasts with the multitude of fingerprints available in the C++ library.
+
+<h5>Syntax</h5>
+
+<pre>
+	extern void     pluton_request_C_setRequestData(pluton_request_C_obj*,
+		                                        const char* requestPointer,
+						        int requestLength,
+						        int copyDataFlag);
+</pre>
+
+<h5>PARAMETERS</h5>
+
+
+<table border=1>
+<tr><th>Name<th>Description</tr>
+
+<tr valign=top><td>requestPointer<td>A pointer to the request data.
+
+There are no constraints on the content of the data.  If the data is text, it probably should be
+encoded in UTF-8 or similar but it also may be binary data. The type of data is entirely a function
+of the agreed-upon serialization between the client and service.
+
+<p>
+If <code>copyDataFlag</code> is <code>false</code> the program must not modify the data pointed to
+by <code>requestPointer</code> until after the request has completed otherwise results are
+guaranteed to be undefined and unpleasant.</tr>
+
+</tr>
+
+<tr valign=top><td>requestLength<td>The number of bytes in the request</tr>
+
+<tr valign=top><td>copyDataFlag<td>If <code>true</code>, the request data is copied into an internally
+      allocated buffer so that the caller does not have to retain the data. Copying request data is
+      obviously sub-optimal and the preferred approach is for the caller to maintain the data if possible.
+</tr>
+
+</table>
+
+
+<a name=setAttribute>
+<h4>pluton_request_C_setAttribute()</h4>
+
+See <a href=clientAPI.html#setAttribute>pluton::clientRequest::setAttribute</a> for semantics.
+
+<h5>Syntax</h5>
+
+<pre>
+	extern void     pluton_request_C_setAttribute(pluton_request_C_obj*, int attrs);
+</pre>
+
+Valid attributes are:
+<p>
+<table border=1>
+<tr><th>C definition<th>Corresponding C++ Attribute</tr>
+<code>
+<tr valign=top><td>pluton_request_C_noWaitAttr<td><a href=clientAPI.html#noWaitAttr>pluton::noWaitAttr</tr>
+<tr valign=top><td>pluton_request_C_noRemoteAttr<td><a href=clientAPI.html#noRemoteAttr>pluton::noRemoteAttr</tr>
+<tr valign=top><td>pluton_request_C_noRetryAttr<td><a href=clientAPI.html#noRetryAttr>pluton::noRetryAttr</tr>
+<tr valign=top><td>pluton_request_C_keepAffinityAttr<td><a href=clientAPI.html#keepAffinityAttr>pluton::keepAffinityAttr</tr>
+<tr valign=top><td>pluton_request_C_needAffinityAttr<td><a href=clientAPI.html#needAffinityAttr>pluton::needAffinityAttr</tr>
+</code>
+</table>
+
+<h5>Example</h5>
+
+<pre>
+  pluton_request_C_obj* R0;
+
+  R0 = pluton_request_C_new();
+  pluton_request_C_setAttribute(R0, pluton_request_C_noWaitAttr | pluton_request_C_noRemoteAttr);
+</pre>
+  
+<a name=getAttribute>
+<h4>pluton_request_C_getAttribute()</h4>
+
+See <a href=clientAPI.html#getAttribute>pluton::clientRequest::getAttribute</a> for semantics.
+
+<h5>Syntax</h5>
+
+<pre>
+	extern int      pluton_request_C_getAttribute(pluton_request_C_obj*, int attrs);
+</pre>
+
+<p>Valid attributes as per <a href=#setAttribute><code>pluton_request_C_setAttribute()</code></a>.
+
+<a name=clearAttribute>
+<h4>pluton_request_C_clearAttribute()</h4>
+
+See <a href=clientAPI.html#clearAttribute>pluton::clientRequest::clearAttribute</a> for semantics.
+
+<h5>Syntax</h5>
+
+<pre>
+	extern void     pluton_request_C_clearAttribute(pluton_request_C_obj*, int attrs);
+</pre>
+
+<p>Valid attributes as per <a href=#setAttribute><code>pluton_request_C_setAttribute()</code></a>.
+
+
+<a name=setContext>
+<h4>pluton_request_C_setContext()</h4>
+
+See <a href=clientAPI.html#setContext>pluton::clientRequest::setContext</a> for semantics.
+
+<h5>Syntax</h5>
+
+<pre>
+	extern int      pluton_request_C_setContext(pluton_request_C_obj*,
+		                                    const char* keyPointer,
+						    const char* valuePointer, int valueLength);
+
+</pre>
+
+<h5>PARAMETERS</h5>
+
+
+<table border=1>
+<tr><th>Name<th>Description</tr>
+
+<tr valign=top><td>keyPointer<td>A pointer a C-string of the context key.</tr>
+
+<tr valign=top><td>valuePointer<td>A pointer to data for the context.</tr>
+
+<tr valign=top><td>valueLength<td>The number of bytes at <code>valuePointer</code></tr>
+
+</table>
+
+<h5>Example</h5>
+
+<pre>
+  pluton_request_C_obj* R0;
+  char buffer[20];
+
+  R0 = pluton_request_C_new();
+  ...fill buffer with 20 bytes of data...
+
+  pluton_request_C_setContext(R0, "payload", buffer, sizeof(buffer));
+</pre>
+
+
+
+<a name=getResponseData>
+<h4>a>pluton_request_C_getResponseData()</h4>
+
+
+See <a href=clientAPI.html#getResponseData>pluton::clientRequest::getResponseData</a>
+for semantics.
+
+<p>This routine returns a pointer and length of the response data. The pointer points at an internal
+data object which is read-only and becomes invalid at the next call to any other routine in this
+API.
+
+<h5>Syntax</h5>
+
+<pre>
+extern  int
+	pluton_request_C_getResponseData(pluton_request_C_obj*,
+                                         const char** responsePointer, int* responseLength);
+</pre>
+
+<h5>PARAMETERS</h5>
+
+<table border=1>
+<tr><th>Name<th>Description</tr>
+
+<tr valign=top><td>respondePointer<td>A pointer to a pointer that is populated with a pointer to the
+    response data.
+</tr>
+
+<tr valign=top><td>responseLength<td>A pointer to an int that is populated with the length of the
+    response data.</tr>
+</tr>
+
+</table>
+
+<h5>RETURN VALUE</h5>
+
+The <code>pluton::faultCode</code> of this request. If not equal to zero then the request has a
+fault of some sort. The fault codes are define in the
+file <code>&lt;pluton/fault.h&gt;<code> C++ include
+file. See <a href=#getFaultText>pluton_request_C_getFaultText</a> for how to access a textual
+explanation of the fault.
+
+<h5>Example</h5>
+
+<pre>
+  pluton_request_C_obj* R0;
+  char buffer[20];
+  const char** rp;
+  int rl;
+
+  R0 = pluton_request_C_new();
+  ...Make request...
+
+  if (pluton_request_C_getResponseData(R0, &rp, &rl) == 0) {
+     write(2, rp, rl);
+  }
+</pre>
+
+
+
+<a name=inProgress>
+<h4>pluton_request_C_inProgress()</h4>
+
+See <a href=clientAPI.html#inProgress>pluton::clientRequest::inProgress</a> for semantics.
+
+<p>Returns a
+value that evaluates to <code>true</code> in C if the request has been added to
+a <code>pluton::client</code> object but not completed and thus un-available
+for returning by any of the <code>executeAndWait*</code>
+routines.
+
+<h5>Syntax</h5>
+
+<pre>
+	extern  int     pluton_request_C_inProgress(pluton_request_C_obj*);
+</pre>
+
+
+<a name=hasFault>
+<h4>pluton_request_C_hasFault()</h4>
+
+See <a href=clientAPI.html#hasFault>pluton::clientRequest::hasFault</a> for semantics.
+
+<h5>Syntax</h5>
+
+<pre>
+	extern  int     pluton_request_C_hasFault(pluton_request_C_obj*);
+</pre>
+
+
+<a name=getFaultCode>
+<h4>pluton_request_C_getFaultCode()</h4>
+
+See <a href=clientAPI.html#getFaultCode>pluton::clientRequest::getFaultCode</a> for semantics.
+
+<h5>Syntax</h5>
+
+<pre>
+	extern  int     pluton_request_C_getFaultCode(pluton_request_C_obj*);
+</pre>
+
+
+<a name=getFaultText>
+<h4>pluton_request_C_getFaultText()</h4>
+
+See <a href=clientAPI.html#getFaultText>pluton::clientRequest::getFaultText</a> for semantics.
+
+<h5>Syntax</h5>
+
+<pre>
+	extern const char*      pluton_request_C_getFaultText(pluton_request_C_obj*);
+</pre>
+
+<h5>RETURN VALUE</h5>
+
+A pointer to a C-string describing the fault for the request. The pointer is only valid until the
+next call to any method in this API. If the request has no fault, a zero length string is returned.
+
+<a name=getServiceName>
+<h4>pluton_request_C_getServiceName()</h4>
+
+See <a href=clientAPI.html#getServiceName>pluton::clientRequest::getServiceName</a> for semantics.
+
+<h5>Syntax</h5>
+
+<pre>
+	extern const char*      pluton_request_C_getServiceName(pluton_request_C_obj*);
+</pre>
+
+<h5>RETURN VALUE</h5>
+
+A pointer to a C-string describing the name of the service. The pointer is only valid until the
+next call to any method in this API.
+
+
+<a name=setClientHandle>
+<h4>pluton_request_C_setClientHandle()</h4>
+
+See <a href=clientAPI.html#setClientHandle>pluton::clientRequest::setClientHandle</a> for semantics.
+
+<h5>Syntax</h5>
+
+<pre>
+	extern void     pluton_request_C_setClientHandle(pluton_request_C_obj*, int);
+</pre>
+
+
+<a name=getClientHandle>
+<h4>pluton_request_C_getClientHandle()</h4>
+
+See <a href=clientAPI.html#getClientHandle>pluton::clientRequest::getClientHandle</a> for semantics.
+
+<h5>Syntax</h5>
+
+<pre>
+	extern int      pluton_request_C_getClientHandle(pluton_request_C_obj*);
+</pre>
+
+<a name=Client>
+<h3>Client methods corresponding to <code>pluton::client</code></h3>
+
+In all cases, services must have a <p>
+
+<pre>
+#include &lt;pluton/service_C.h&gt;
+</pre>
+
+<p>
+line in their program to pull in the prototype definitions.
+
+<p>This table identifies all the available C methods and the corresponding C++
+methods. The C methods link to their syntactic definition.
+
+<p>
+<table border=1>
+<tr><th>C method<th>Corresponding C++ method</tr>
+
+<tr><td<a href=#clientNew>pluton_client_C_new</a><td><a href=clientAPI.html#construction>pluton::client constructor</a></tr>
+<tr><td<a href=#clientDelete>pluton_client_C_delete</a><td><a href=clientAPI.html#preparing>pluton::client destructor</a></tr>
+<tr><td<a href=#clientReset>pluton_client_C_reset</a><td><a href=clientAPI.html#clientReset>pluton::client::reset</a></tr>
+<tr><td<a href=#getAPIVersion>pluton_client_C_getAPIVersion</a><td><a href=clientAPI.html#getAPIVersion>pluton::client::getAPIVersion</a></tr>
+<tr><td<a href=#initialize>pluton_client_C_initialize</a><td><a href=clientAPI.html#initialize>pluton::client::initialize</a></tr>
+<tr><td<a href=#clientHasFault>pluton_client_C_hasFault</a><td><a href=clientAPI.html#clientHasFault>pluton::client::hasFault</a></tr>
+<tr><td<a href=#setDebug>pluton_client_C_setDebug</a><td><a href=clientAPI.html#setDebug>pluton::client::setDebug</a></tr>
+<tr><td<a href=#setTimeoutMilliSeconds>pluton_client_C_setTimeoutMilliSeconds</a><td><a href=clientAPI.html#setTimeoutMilliSeconds>pluton::client::setTimeoutMilliSeconds</a></tr>
+<tr><td<a href=#getTimeoutMilliSeconds>pluton_client_C_getTimeoutMilliSeconds</a><td><a href=clientAPI.html#getTimeoutMilliSeconds>pluton::client::getTimeoutMilliSeconds</a></tr>
+<tr><td<a href=#addRequest>pluton_client_C_addRequest</a><td><a href=clientAPI.html#addRequest>pluton::client::addRequest</a></tr>
+<tr><td<a href=#executeAndWaitSent>pluton_client_C_executeAndWaitSent</a><td><a href=clientAPI.html#executeAndWaitSent>pluton::client::executeAndWaitSent</a></tr>
+<tr><td<a href=#executeAndWaitAll>pluton_client_C_executeAndWaitAll</a><td><a href=clientAPI.html#executeAndWaitAll>pluton::client::executeAndWaitAll</a></tr>
+<tr><td<a href=#executeAndWaitOne>pluton_client_C_executeAndWaitOne</a><td><a href=clientAPI.html#executeAndWaitOne>pluton::client::executeAndWaitOne</a></tr>
+<tr><td<a href=#executeAndWaitAny>pluton_client_C_executeAndWaitAny</a><td><a href=clientAPI.html#executeAndWaitAny>pluton::client::executeAndWaitAny</a></tr>
+
+</table>
+<p>
+
+
+
+<a name=clientNew>
+<h4>pluton_client_C_new()</h4>
+
+Create a container for the <code>pluton::client</code> object and return an opaque pointer of
+type <code>pluton_client_C_obj</code>. The correct (and only) way to delete this object is to
+call <a href=#clientDelete>pluton_client_C_delete</a>.
+
+<p>
+See <a href=clientAPI.html#construction>pluton::client constructor</a> for semantics.
+
+<h5>Syntax</h5>
+
+<pre>
+	extern pluton_client_C_obj* pluton_client_C_new(const char* yourName,
+							int defaultTimeoutMilliSeconds);
+</pre>
+
+
+<a name=clientDelete>
+<h4>pluton_client_C_delete()</h4>
+
+Delete the object previously created by <a href=#clientNew>pluton_client_C_new</a>.
+
+<h5>Syntax</h5>
+
+<pre>
+	extern void     pluton_client_C_delete(pluton_client_C_obj*);
+</pre>
+
+
+<a name=clientReset>
+<h4>pluton_client_C_reset()</h4>
+
+See <a href=clientAPI.html#clientReset>pluton::client::reset</a> for semantics.
+
+<h5>Syntax</h5>
+
+<pre>
+	extern void     pluton_client_C_reset(pluton_client_C_obj*);
+</pre>
+
+
+<a name=getAPIVersion>
+<h4>pluton_client_C_getAPIVersion()</h4>
+
+See <a href=clientAPI.html#getAPIVersion>pluton::client::getAPIVersion</a> for semantics.
+
+<h5>Syntax</h5>
+
+<pre>
+	extern const char*      pluton_client_C_getAPIVersion();
+</pre>
+
+
+<a name=initialize>
+<h4>pluton_client_C_initialize()</h4>
+
+See <a href=clientAPI.html#initialize>pluton::client::initialize</a> for semantics.
+
+<h5>Syntax</h5>
+
+<pre>
+	extern  int     pluton_client_C_initialize(pluton_client_C_obj*,
+		                                   const char* lookupMapPath);
+</pre>
+
+<p>
+If <code>lookupMapPath</code> is NULL or an empty string the default lookup map is used.
+
+<a name=clientHasFault>
+<h4>pluton_client_C_hasFault()</h4>
+
+See <a href=clientAPI.html#clientHasFault>pluton::client::hasFault</a> for semantics.
+
+<h5>Syntax</h5>
+
+<pre>
+	extern  int     pluton_client_C_hasFault(pluton_client_C_obj*);
+</pre>
+
+
+<a name=setDebug>
+<h4>pluton_client_C_setDebug()</h4>
+
+See <a href=clientAPI.html#setDebug>pluton::client::setDebug</a> for semantics.
+
+<h5>Syntax</h5>
+
+<pre>
+extern  void    pluton_client_C_setDebug(pluton_client_C_obj*, int nv);
+</pre>
+
+
+<a name=setTimeoutMilliSeconds>
+<h4>pluton_client_C_setTimeoutMilliSeconds()</h4>
+
+See <a href=clientAPI.html#setTimeoutMilliSeconds>pluton::client::setTimeoutMilliSeconds</a> for semantics.
+
+
+<h5>Syntax</h5>
+
+<pre>
+	extern  void	pluton_client_C_setTimeoutMilliSeconds(pluton_client_C_obj*,
+                                                               int timeoutMilliSeconds);
+</pre>
+
+
+<a name=getTimeoutMilliSeconds>
+<h4>pluton_client_C_getTimeoutMilliSeconds()</h4>
+
+See <a href=clientAPI.html#getTimeoutMilliSeconds>pluton::client::getTimeoutMilliSeconds</a> for semantics.
+
+<h5>Syntax</h5>
+
+<pre>
+	extern  int    pluton_client_C_getTimeoutMilliSeconds(pluton_client_C_obj*);
+</pre>
+
+
+<a name=addRequest>
+<h4>pluton_client_C_addRequest()</h4>
+
+See <a href=clientAPI.html#addRequest>pluton::client::addRequest</a> for semantics.
+
+<h5>Syntax</h5>
+
+<pre>
+	extern  int     pluton_client_C_addRequest(pluton_client_C_obj*,
+						   const char* serviceKey, pluton_request_C_obj*);
+</pre>
+
+
+<a name=executeAndWaitSent>
+<h4>pluton_client_C_executeAndWaitSent()</h4>
+
+See <a href=clientAPI.html#executeAndWaitSent>pluton::client::executeAndWaitSent</a> for semantics.
+
+<h5>Syntax</h5>
+
+<pre>
+	extern  int     pluton_client_C_executeAndWaitSent(pluton_client_C_obj*);
+</pre>
+
+
+<a name=executeAndWaitAll>
+<h4>pluton_client_C_executeAndWaitAll()</h4>
+
+See <a href=clientAPI.html#executeAndWaitAll>pluton::client::executeAndWaitAll</a> for semantics.
+
+<h5>Syntax</h5>
+
+<pre>
+	extern  int     pluton_client_C_executeAndWaitAll(pluton_client_C_obj*);
+</pre>
+
+
+<a name=executeAndWaitOne>
+<h4>pluton_client_C_executeAndWaitOne()</h4>
+
+See <a href=clientAPI.html#executeAndWaitOne>pluton::client::executeAndWaitOne</a> for semantics.
+
+<h5>Syntax</h5>
+
+<pre>
+	extern  int     pluton_client_C_executeAndWaitOne(pluton_client_C_obj*, pluton_request_C_obj*);
+</pre>
+
+
+<a name=executeAndWaitAny>
+<h4>pluton_client_C_executeAndWaitAny()</h4>
+
+See <a href=clientAPI.html#executeAndWaitAny>pluton::client::executeAndWaitAny</a> for semantics.
+
+<h5>Syntax</h5>
+
+<pre>
+	extern  pluton_request_C_obj* pluton_client_C_executeAndWaitAny(pluton_client_C_obj*);
+</pre>
+
+<h5>RETURN VALUE</h5>
+
+The return value, if not NULL, is a pointer to a previously
+created <code>pluton_request_C_obj</code> object. This return value <i>not</i> a copy but a pointer
+to a pre-exiting object so be wary of double-deleting.
+
+<p>
+<hr>
+<font size=-1>
+$Id: cclientAPI.html 260483 2009-10-16 18:47:56Z markd $
+&copy; Copyright Yahoo! Inc, 2007, 2008, 2009
+</font>
+</body>
+</html>

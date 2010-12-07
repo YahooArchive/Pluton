@@ -1,0 +1,107 @@
+<html>
+<head>
+<link rel="shortcut icon" href=images/pluto-symbol.jpg type="image/x-icon" />
+<title>
+The Pluton Framework: Overview
+</title>
+</head>
+
+<body>
+
+<center>
+<a href=index.html>
+<img height=100 src=images/pluto-charon.jpg ALT="[Pluto Charon Image]">
+</a>
+</center>
+
+<h2 align=center>The Pluton Framework: Overview</h2>
+
+At the core of the Pluton Framework are Service Programs.  Service
+Programs are stand-alone executables that accepts requests from
+clients via a Unix socket (called a <code>Rendezvous
+Socket</code> in Pluton parlance) and send their response back to the client. Service
+Programs iterate on this <i>get request/send response</i> sequence
+much like a web server. A Service Program is intended to be a
+relatively simple program that handles just one type of request, or at
+most, a small number of related requests making it relatively easy to
+write, test and debug.
+
+<p>
+From a client program perspective, the most powerful aspect of the
+Pluton Framework is the ease with which multiple service requests can
+be made in parallel without needing to resort to the complexities
+normally associated with parallel processing such as threads, I/O
+event programming or asynchronous I/O.
+<p>
+<br>
+<center>
+<img border=1 height=200 src="images/overview_client_service.jpg" ALT="[Client Service Overview]">
+</center>
+<p>
+
+While there is nothing novel about a Unix socket interface, where the
+Pluton Framework comes into play is that it provides:
+
+<ul>
+<li>a well documented, simple API for clients to exchange requests with
+Service Programs
+<li>a well documented, simple API for Service Programs so they can
+focus on service provision
+<li>a manager program that automatically
+instantiates Service Programs based on client demand and a simple
+configuration
+<li>extensive monitoring and logging of Service Program activity to
+simplify performance analysis
+
+</ul>
+
+In short, the Pluton Framework is a comprehensive infrastructure that
+frees developers from worrying about the mechanisms and interfaces and
+lets them focus on writing Service Programs for their client
+applications.
+
+<p>
+A key feature of the framework is that clients can easily make
+multiple requests in parallel which can greatly reduce client latency
+by overlapping requests. This feature is available to all clients
+(including PHP) as it does not rely on threads or parallel support
+within the client language.
+
+<p>
+One scenario where this framework can be particularly useful is a network
+application such as a web server that accesses multiple internal
+content servers to generate rich output. By making parallel requests
+to services, the web application can provide a much lower latency
+interface to the user. By virtue of the Service Programs running as
+separate executables, the web application is insulated from bugs and
+resource leaks that may exist in the service code.
+
+<p>Additional benefits of the framework include:
+
+<ul>
+<li>a lighter memory footprint for the web
+application since the service code is no longer embedded in the
+application
+<li>independent resource monitoring of Service Programs
+which greatly simplifies performance analysis
+<li>simple Service Program testing by virtue of them being
+stand-alone executables
+<li>interface abstraction across language, OS and network boundaries
+<li>simpler install of new features - just an executable and a config
+file is required
+<li>a substantial reduction in library dependency due to
+self-contained executable Service Programs
+</ul>
+
+Over time, the hope is that many general purpose Service Programs will
+be written thus creating a rich set of building blocks readily
+available to every application.
+
+
+<p>
+<font size=-1>
+$Id: overview.html 260483 2009-10-16 18:47:56Z markd $
+&copy; Copyright Yahoo! Inc, 2007
+</font>
+</body>
+</html>

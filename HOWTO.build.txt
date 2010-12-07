@@ -1,0 +1,10 @@
+The build process is currently pretty crude and probably only works on
+Linux. One task should be to make this work under GNU configure.
+
+1. Download and compile state-threads.sourceforge.net
+
+2. Edit make.config to set the various paths
+
+3. From the top level directory run "make clean all"
+
+

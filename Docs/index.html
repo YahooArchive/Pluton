@@ -1,0 +1,350 @@
+<html>
+<head>
+<link rel="shortcut icon" href=images/pluto-symbol.jpg type="image/x-icon">
+<title>
+The Pluton Framework
+</title>
+</head>
+
+<body>
+
+<center>
+<a href=about.html>
+<img height=100 src=images/pluto-charon.jpg ALT="[Pluto Charon Image]">
+</a>
+</center>
+
+<h2 align=center>The Pluton Framework</h2>
+
+<font size=+1>
+<ol>
+<li><a href=#Introduction>Introduction</a>
+<ul>
+<li><a href=#Overview>Overview of pluton</a>
+<li><a href=#RightForYou>Is pluton right for you?</a>
+<li><a href=#DocElevatorPitch>The Elevator Pitch</a>
+</ul>
+<p>
+<li><a href=#Documentation>General Documentation</a>
+<ul>
+<li><a href=#DocBackground>Background Reading</a>
+<li><a href=#DocMainComponents>Main Components</a>
+</ul>
+
+<p>
+<li><a href=#DocForProgrammers>For Programmers</a>
+
+<p>
+<li><a href=FAQ.html>The FAQ page</a>
+<li><a href=#QuickReference>Quick Reference to all pages</a>
+
+</ol>
+</font>
+
+<p>
+<p>A note about navigation: on all pages, click on the image of
+Pluto-Charon at the top of the page to return to this launch page.
+
+<a name=Introduction>
+<h3>Introduction</h3>
+</a>
+
+<a name=Overview>
+<h4>Overview of pluton</h4>
+Pluton is a framework which can help make network applications -
+especially web server applications - faster, lighter-weight, easier to
+debug, <em>and</em> potentially less resource intensive. The core
+features of the framework include:
+
+<ul>
+<li>encapsulation of functional services into self-contained, independent
+executables
+
+<li>a convenient, fast and simple interface to
+these functional services
+
+<li>an interface which actively encourages and simplifies parallel
+service requests to reduce aggregate latency
+
+<li>a serialization-agnostic interface between clients and services -
+you get to choose your serialization poison
+
+</ul>
+
+<p>
+The primary goal of the Pluton Framework is to replace large, brittle,
+high latency, network applications embedded in web servers with
+smaller, flexible applications which use co-operative, independent
+services in parallel to create a low-latency experience.
+
+<h4>A simple example</h4>
+
+Imagine you have a web application that makes calls to "getAd",
+"lookupUser" and "getBuddies". All of these functions are currently
+implemented as libraries which:
+
+<ul>
+<li>are called serially
+<li>make a network call to a remote service that can be very slow
+<li>may unfortunately leak memory
+<li>may unfortunately sometimes core dump
+</ul>
+
+<p>
+With pluton, you can isolate your application from all of these issues
+<i>and</i> run them all in parallel to greatly reduce latency.
+
+<a name=RightForYou>
+<h3>Is pluton right for you?</h3>
+
+A series of tests to help you decide whether pluton is right for
+you.
+
+<p>
+
+<table border=1>
+<tr><th>Situation<th>How pluton can help</tr>
+
+<tr><td>Your web application makes a number of network requests to remote services
+<td>pluton can execute all of these requests in parallel and
+dramatically reduce your aggregate latency</tr>
+
+<tr><td>Tuning your web application is complex due to the unknown performance
+of all the dependencies
+<td>pluton isolates components and reports on their system resource usage</tr>
+
+<tr><td>Your web application core dumps in mysterious ways (and you
+suspect a 3rd-party library you have no control over)
+<td>Use pluton to isolate components so that buggy libraries do not impact
+the core application</tr>
+
+<tr><td>Your web application makes calls to libraries that can block
+for too long (or that have timeouts you can't control)
+<td>Move the library into a service then you control how long you wait
+for the service</tr>
+
+<tr><td>Your web application is using a library that leaks memory
+<td>Place the library in a separate service and your problem goes away</tr>
+
+<tr><td>Your PHP application wants access to a library that is only
+available in C++
+<td>Write a small C++ service that calls that library then change
+your PHP application to call the service</tr>
+
+<tr><td>Your Java application wants access to a library that is only
+available in PHP
+<td>Write a small PHP service that calls that library then change your
+Java application to call the service</tr>
+
+<tr><td>Your C++ application wants access to a library that is only
+available in Java
+<td>Write a small Java service that calls that library then change your
+C++ application to call the service</tr>
+
+<tr><td>You have computationally intensive operations that you would
+like to run in parallel
+<td>Move the computation into a separate service and invoke multiple instances in
+parallel to take full advantage of all the CPUs and cores on the
+system</tr>
+
+<tr><td>You want to prototype new functionality in a
+<i>fast-to-write</i> language like PHP, but be able to easily change
+to a <i>fast-to-execute</i> language like C++
+<td>Create the functionality as a service then write it in any
+language you wish without ever having to worry about language
+dependencies</tr>
+
+<tr><td>You have rapidly changing functionality and continually
+reloading your web server has a negative user impact
+<td>Place the functionality in a service as replacing services is
+completely transparent and non-disruptive
+</tr>
+
+<tr><td>Your web application has a very heavy memory footprint due to
+the large number of libraries you use
+<td>Move the libraries into separate services and dramatically reduce
+the footprint of your web server instances. If done comprehensively,
+your web application may be so light-weight as to allow <i>keep-alives</i>
+</tr>
+
+</table>
+
+
+<a name=DocElevatorPitch>
+<h4>Elevator Pitch</h4>
+
+<p>
+The key concept is that you move the major functions of your web
+application out into a separate set of executable programs. These
+separate executable programs are called
+<i>services</i> in pluton parlance and are managed for you by
+the <a href=plutonManager.html>plutonManager</a>.
+
+<p>
+By way of example, if your web application currently calls subroutine
+<code>AgetAd</code> then subroutine <code>BlookupUser</code> and
+finally subroutine <code>CfindBuddies</code>, you can turn those
+subroutines into separate <i>services</i> and use pluton to exchange
+requests with those services. The <i>value-add</i> is that pluton
+makes this very easy to do.
+
+<p>And why would you want to move subroutines out of your application
+into separate services? The reasons are many.
+
+<p>For a start, pluton makes it trivially easy to call those three
+services in parallel - even in languages that do not support parallel
+processing such as PHP. If <code>AgetAd</code>,
+<code>BlookupUser</code> or <code>CfindBuddies</code> happen to
+involve high latency network requests, pluton automatically overlaps
+this latency and improved the response time of your web server -
+possible dramatically. Performance!
+
+<p>A second reason for moving a subroutine or function out into a
+pluton service is that it insulates your application from that
+function. If subroutine <code>AgetAd</code> happens to be a bit buggy
+or subroutine <code>BlookupUser</code> has memory leaks or subroutine
+<code>CfindBuddies</code> tends to dump core, moving it to a pluton
+service completely insulates your main application from those
+problems. Resilience!
+
+<p>A third reason for moving large subroutines into a pluton service
+is that it can significantly reduce the memory footprint of your web
+service and make it possible to run many more instances of your web
+service on a given system. Efficiency!
+
+<p>There are numerous other benefits too, but since we've reached your
+floor, we'll finish with this summary:
+
+By using pluton you can end up with smaller faster web applications
+that are much more stable and use <i>less</i> resources. True!
+
+
+<a name=Documentation>
+<h3>Documentation</h3>
+</a>
+
+
+<a name=DocBackground>
+<h4>Background Reading</h4>
+
+For general reading start with the <a href=overview.html>overview</a>
+document. For a detailed understanding, you might want to read the <a
+href=background.html>background and motivation</a> as well as the <a
+href=design.html>design</a> document.
+
+<p>
+
+<a name=DocMainComponents>
+<h4>Main Components</h4>
+
+The main components of the Pluton Framework include:
+
+<ul>
+<li>the <a href=plutonManager.html>plutonManager</a>, the daemon which
+manages the self-contain services and the rendezvous sockets
+
+<li>the <a href=configuration.html>configuration</a> file format used to
+describe each service
+
+<li>the <a href=serialization.html>serialization types</a> which are
+currently defined
+
+<li>a description of <a href=serviceKey.html>Service Keys</a> which are a pervasive part of
+the Pluton Framework used to discover services, identify
+configuration files and name temporary file system objects
+
+<li>and <a href=commands.html>command line utilities</a> to access and query
+the plutonManager and services
+</ul>
+
+<a name=DocForProgrammers>
+<h3>For Programmers</h3>
+
+Currently pluton has language bindings for C++, C, PHP, Java and perl.
+
+<p>
+There is a special C++ API that supports programs written with
+<a href=http://state-threads.sourceforge.net/>State Threads</a>
+or
+<a href=http://monkey.org/~provos/libevent/>libevent</a>. This 
+<a href=clientAPINonBlock.html>C++ Non-blocking API</a> is specifically
+designed to integrate with these systems.
+
+<h4>Writing Service Programs</h4>
+
+There are separate pages explaining how to
+<a href=howToStructureService.html>structure</a> and
+how to
+<a href=howToTestService.html>test</a> your service.
+
+<p>
+If you are looking for an existing service to use, this <a href=catalog.html>catalog</a>
+of services might be of use.
+
+<h4>Other useful information</h4>
+
+There are pages that:
+
+<ul>
+<li>explain the <a href=logs.html>log entries</a> generated by the
+plutonManager
+
+<li>give indicative <a href=performance.html>performance</a> numbers which
+show likely throughput and latency costs
+
+<li>discuss plans and suggestions for <a
+href=future.html>future</a> versions
+
+<li>and finally finally, a <a href=FAQ.html>FAQ</a> to catch miscellaneous questions.
+</ul>
+
+<a name=QuickReference>
+<h3>Quick Reference to all pages</h3>
+</a>
+
+If you know what you're looking for, jump straight to it:
+
+<p>
+<table>
+
+<tr><td><a href=ChangeLog.html>ChangeLog.html</a></tr>
+<tr><td><a href=FAQ.html>FAQ.html</a></tr>
+<tr><td><a href=about.html>about.html</a></tr>
+<tr><td><a href=background.html>background.html</a></tr>
+<tr><td><a href=catalog.html>catalog.html</a></tr>
+<tr><td><a href=cclientAPI.html>CclientAPI.html</a></tr>
+<tr><td><a href=clientAPI.html>clientAPI.html</a></tr>
+<tr><td><a href=clientAPINonBlock.html>clientAPINonBlock.html</a></tr>
+<tr><td><a href=commands.html>commands.html</a></tr>
+<tr><td><a href=configuration.html>configuration.html</a></tr>
+<tr><td><a href=cserviceAPI.html>CserviceAPI.html</a></tr>
+<tr><td><a href=design.html>design.html</a></tr>
+<tr><td><a href=fault.html>fault.html</a></tr>
+<tr><td><a href=future.html>future.html</a></tr>
+<tr><td><a href=howToStructureService.html>howToStructureService.html</a></tr>
+<tr><td><a href=howToTestService.html>howToTestService.html</a></tr>
+<tr><td><a href=index.html>index.html</a></tr>
+<tr><td><a href=javaClientAPI.html>javaClientAPI.html</a></tr>
+<tr><td><a href=javaServiceAPI.html>javaServiceAPI.html</a></tr>
+<tr><td><a href=logs.html>logs.html</a></tr>
+<tr><td><a href=overview.html>overview.html</a></tr>
+<tr><td><a href=performance.html>performance.html</a></tr>
+<tr><td><a href=perlAPI.html>perlAPI.html</a></tr>
+<tr><td><a href=phpAPI.html>phpAPI.html</a></tr>
+<tr><td><a href=plutonManager.html>plutonManager.html</a></tr>
+<tr><td><a href=sampleClient.html>sampleClient.html</a></tr>
+<tr><td><a href=serialization.html>serialization.html</a></tr>
+<tr><td><a href=serviceAPI.html>serviceAPI.html</a></tr>
+<tr><td><a href=serviceKey.html>serviceKey.html</a></tr>
+<tr><td><a href=threading.html>threading.html</a></tr>
+
+</table>
+
+<p>
+<hr>
+<font size=-1>
+$Id: index.html 260483 2009-10-16 18:47:56Z markd $
+&copy; Copyright Yahoo! Inc, 2007, 2008, 2009
+</font>
+</body>
+</html>

@@ -1,0 +1,235 @@
+<html>
+<head>
+<link rel="shortcut icon" href=images/pluto-symbol.jpg type="image/x-icon" />
+<title>
+The Pluton Framework: How To Test Your Service
+</title>
+</head>
+
+<body>
+
+<center>
+<a href=index.html>
+<img height=100 src=images/pluto-charon.jpg ALT="[Pluto Charon Image]">
+</a>
+</center>
+
+<h2 align=center>The Pluton Framework: How To Test Your Service</h2>
+
+<ol>
+<li><a href=#Introduction>Introduction</a>
+<li><a href=#withPlTest>Testing with <code>plTest</code></a>
+<li><a href=#withRegression>Regression Testing with <code>plTest</code></a>
+<li><a href=#withRedirect>Testing using the file-descriptor-redirect method</a>
+<li><a href=#withManager>Testing as a service with the plutonManager</a>
+<li><a href=#capturing>Capturing real request packets for later testing</a>
+</ol>
+
+<p>
+
+<a name=Introduction>
+<h3>Introduction</h3>
+Once you have written a service you'll naturally want to test
+it - this document explains how.
+
+<p>
+The easiest way to test your service program is to run it independently of
+the plutonManager with the
+<a href=commands.html#plTest><code>plTest</code></a> command.
+
+<p>(A variant of this is to run your service program directly using the
+file-descriptor-redirect method where you arrange file descriptors 3
+and 4 to refer to an input request and output destination,
+respectively - more on this later.)
+
+<p>After you are confident that your service works with
+<code>plTest</code>, it is time to test it with the plutonManager.
+
+<p>
+The reasons why it is better to do your initial testing with <code>plTest</code> are that you can:
+
+<ul>
+<li>work through a compile-test-debug cycle more quickly and
+simply
+<li>run your program under a debugger like <code>gdb</code>
+<li>place debug prints into your service and watch the output
+<li>use it to create a regression test suite for your service
+</ul>
+
+<p>
+The main difference between <code>plTest</code> and the
+file-descriptor-redirect method is that <code>plTest</code>
+encapsulates the request in the protocol exchange whereas the
+redirect method requires that you supply a raw protocol packet as
+input data.
+
+<a name=withPlTest>
+<h3>Testing with <code>plTest</code></h3>
+
+The description
+of <a href=commands.html#plTest><code>plTest</code></a> includes
+examples showing how to test a service and supply request data and
+context. To repeat those examples here - assuming you have written a
+service program and called it <code>yourservice</code> in the current
+directory:
+
+Here's how to run <code>./yourservice</code> and send "Hello World" as the request data:
+<p>
+<pre>
+echo Hello World | plTest ./yourservice
+</pre>
+
+<p>
+and how to run the <code>system.echo</code> service and set context variables:
+<p>
+<pre>
+plTest -Cecho.sleepMS=1000 -Cecho.log=y /usr/local/bin/system.echo.0.raw &lt;testfile
+</pre>
+
+<p>
+If you need to debug your program, here's how
+to run the <code>./yourservice</code> service program in
+<code>gdb</code>. Note the use of the <code>-i</code> and
+<code>-o</code> options to ensure that <code>gdb</code> has access to
+your tty.
+
+<pre>
+$ echo Hello World &gt;testfile
+$ plTest -i testfile `which gdb` ./yourservice
+</pre>
+
+<a name=withRegression>
+<h3>Regression Testing with <code>plTest</code></h3>
+
+<p>With <code>plTest</code> you normally supply the request data as an
+input file. If you keep all your test input files and wrap
+them in a bit of shell-script you'll have built yourself a regression
+test.
+
+<p>For example, if you keep your input request files in a directory
+called <i>inputFiles</i> and you keep a copy of the correct output in
+a directory called <i>expectedOutput</i> you can use the following
+script to run a regression test:
+
+<pre>
+#! /bin/sh
+
+for f in `ls inputFiles`
+do
+    plTest -i inputFiles $f -o /tmp/result ./yourservice
+    cmp -s /tmp/result expectedOutput/$f
+    [ $? -ne 0 ] && echo Regression test: $f failed.
+done
+
+</pre>
+
+<p>
+No reason to avoid making regression tests really, is there?
+
+
+<a name=withRedirect>
+<h3>Testing using the file-descriptor-redirect method</h3>
+
+This is the lowest level testing of a service. When using this method
+you have to supply requests encoded in the packet format used to
+exchange requests via the APIs. Furthermore, the output is in packet
+format which means you may want to use the
+
+<a href=commands.html#plNetStringGrep>plNetStringGrep</a> command to
+extract the relevant values.
+
+<p>An outline of the packet protocol can be found in the <a
+href=design.html#ClientServiceProtocol>design document</a>, but for
+real detail you'll need to consult the source code. Sorry.
+
+<p>The file-descriptor-redirect method relies on the fact that the <a
+href=serviceAPI.html>serviceAPI</a> expects inbound request packets on
+file descriptor 3 and it writes response packets out to file
+descriptor 4. Thus, to run a service completely stand-alone simply
+requires arranging fds 3 and 4 to point to valid inputs and outputs.
+
+
+<p>(File descriptors 3 and 4 are obviously chosen so as not to interfere
+with the standard fds used by gdb, cout, printf, et al.)
+
+<p>For example, if the file <i>inputPacket</i> has a valid request,
+then a service can be run like this from the shell:
+
+<pre>
+$ ./myservice 3&lt;inputPacket 4&gt;outputPacket
+</pre>
+
+<p>
+Input packet can actually contain multiple request packets as the
+serviceAPI simply reads requests until it reaches EOF.
+
+<p>With that knowledge, it's a small step to running the service under
+a debugger, eg:
+
+<pre>
+$ gdb ./myservice 3&lt;inputPacket 4&gt;outputPacket
+</pre>
+
+With this in mind, it should be obvious that any diagnostic or
+monitoring program that is used with normal executables can be used
+with services; 0ther good choice are ktrace and valgrind:
+
+<pre>
+$ ktrace ./myservice 3&lt;inputPacket 4&gt;outputPacket
+$ valgrind ./myservice 3&lt;inputPacket 4&gt;outputPacket
+</pre>
+
+
+<a name=withManager>
+<h3>Testing as a service with the plutonManager</h3>
+
+Once you are satisfied with stand-alone testing, the final step is to
+test when the service running under the control of the plutonManager.
+
+<p>As the documentation for <a
+href=commands.html#plReloadManager><code>plReloadManager</code></a>
+states, the plutonManager only checks for changes to configuration
+files. If you are only changing your executable as you test, then you'll need
+to either restart the plutonManager or touch the configuration file
+then use <code>plReloadManager</code>. The former obviously being
+disruptive to all services.
+
+<p>Once your service is installed and recognized by the plutonManager,
+you can use the <a href=commands.html#plSend><code>plSend</code></a>
+command to send request data to your service. The same test files you
+created and used earlier with <code>plTest</code> are perfect for this.
+
+<a name=capturing>
+<h4>Capturing real request packets for later testing</h4>
+
+The <a href=configuration.html>service configuration</a> has the
+<a href=configuration.html#recorder-cycle>recorder-cycle</a>
+and
+<a href=configuration.html#recorder-prefix>recorder-prefix</a>
+directives with control the recording of requests and response to disk
+as they are processed by a service. For example, if your service
+configuration contains:
+
+<p>
+<table border=1>
+<td>
+<pre>
+recorder-prefix /tmp/service.
+recorder-cycle  100
+</pre>
+</table>
+
+<p>
+then each request and response will be written into a set of up to 100
+files starting with the prefix <code>/tmp/service.</code>. These files
+are suitable for testing with the file-descriptor-redirect method
+described above.
+
+<p>
+<hr>
+<font size=-1>
+$Id: howToTestService.html 260483 2009-10-16 18:47:56Z markd $
+&copy; Copyright Yahoo! Inc, 2007
+</font>
+</body>
+</html>

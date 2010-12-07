@@ -1,0 +1,2 @@
+minimum-processes	0
+exec /bin/echo

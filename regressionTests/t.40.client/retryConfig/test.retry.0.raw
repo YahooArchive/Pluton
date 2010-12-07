@@ -1,0 +1,2 @@
+exec			platform-tests/tRetry
+maximum-processes	1

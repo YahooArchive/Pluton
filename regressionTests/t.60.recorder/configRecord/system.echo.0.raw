@@ -1,0 +1,3 @@
+exec platform-services/echo
+recorder-prefix	./data/record.
+recorder-cycle	30

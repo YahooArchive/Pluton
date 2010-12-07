@@ -1,0 +1,2 @@
+ulimit-data-memory	0M		# if zero, don't apply
+exec /bin/echo

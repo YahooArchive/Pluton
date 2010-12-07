@@ -1,0 +1,3 @@
+# "yoo" is not a valid serialization type
+
+exec /bin/echo

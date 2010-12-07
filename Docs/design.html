@@ -1,0 +1,417 @@
+<html>
+<head>
+<link rel="shortcut icon" href=images/pluto-symbol.jpg type="image/x-icon" />
+<title>
+The Pluton Framework: Design
+</title>
+</head>
+
+<body>
+
+<center>
+<a href=index.html>
+<img height=100 src=images/pluto-charon.jpg ALT="[Pluto Charon Image]">
+</a>
+</center>
+
+<h2 align=center>The Pluton Framework: Design Details</h2>
+
+<p>
+<ul>
+<li><a href=#Introduction>Introduction</a>
+<li><a href=#plutonManager>The plutonManager</a>
+
+<ul>
+<li><a href=#ProgramStructure>Program Structure</a>
+<li><a href=#ServiceKeys>Service Keys, Lookup and Rendezvous</a>
+<li><a href=#Instances>Managing Service Instances</a>
+<li><a href=#Communicating>Communicating with Services</a>
+
+<ul>
+<li><a href=#ExitStatus>Exit status and Resource Usage</a>
+<li><a href=#Signals>Signals</a>
+<li><a href=#SharedMemory>Shared Memory</a>
+<li><a href=#ReportingSocket>Reporting Socket</a>
+<li><a href=#Environment>Environment Variables</a>
+<li><a href=#Arranged>Arranged File Descriptors</a>
+
+
+</ul>
+
+</ul>
+
+<li><a href=#serviceAPI>Service API</a>
+<li><a href=#clientAPI>Client API</a>
+<li><a href=#ClientServiceProtocol>Client Service Protocol</a>
+<li><a href=#ReportingProtocol>Service Reporting Protocol</a>
+</ul>
+
+<h3><a name=Introduction>Introduction</h3>
+
+
+Most of the design details of the Pluton Framework are embedded in the
+<a href=plutonManager.html>plutonManager</a>, the <a
+href=#clientAPI>client API</a> and the <a
+href=#serviceAPI>service API</a>. Whilst not overly complicated,
+there are a couple of design aspects of these components which may be
+of general interest. This document highlights those
+aspects. There is also a <a href=background.html>background</a>
+document which is worth reading prior to diving into this document.
+
+
+<h3><a name=plutonManager>The plutonManager</h3>
+
+
+The plutonManager is a C++ program which has three main responsibilities:
+
+<ul>
+<li>Create the lookup and rendezvous mechanisms
+<li>Manage service instances
+<li>Collect and log performance data written to the Reporting Sockets
+</ul>
+
+These responsibilities are largely passive as the plutonManager plays
+no direct role in the exchange of requests between clients and
+services.
+
+
+<h4><a name=ProgramStructure>Program structure</h4>
+
+The plutonManager is a single-threaded program which uses <a
+href=http://state-threads.sourceforge.net/>State Threads</a> to manage
+a potentially large collections of file descriptors and events. There
+are three types of threads:
+
+<p>The Main <em>thread</em> is responsible for:
+<ul>
+<li>detecting configuration reload requests (via SIGHUP) and creating  service threads for
+each new or changed configurations
+<li>detecting service exits (via SIGCHLD and wait4())
+<li>generating periodic status reports
+</ul>
+
+<p>Service <em>threads</em> are created by the Main <em>thread</em> -
+one per service configuration - and they are responsible for:
+
+<ul>
+<li>processing service performance reports written to the Reporting Socket
+<li>adjusting the instance count for the service and create a Process
+</em>thread</em> for each new instance created
+<li>monitoring the Rendezvous socket when no services are active
+</ul>
+
+
+<p>Process <em>threads</em> are created by a Service <em>thread</em> -
+one per active process - and they are responsible for:
+
+<ul>
+<li>monitoring <code>STDERR</code> of the service for logging traffic
+<li>Checking for stalled processes stuck on a request
+<li>Check for an idle process to terminate
+</ul>
+
+State Threads are extremely light-weight, so having one thread per
+process is cheap and significantly simplifies the plutonManager
+implementation by making it procedural rather than event-driven. This
+diagram shows the thread relationships:
+
+<p>
+<center>
+<a href=images/plutonThreads1.jpg>
+<img border=1 height=300 src="images/plutonThreads1.jpg" ALT="[Threads 1]">
+</a>
+<p><font size=-1>(Click on image for a larger version).</font>
+</center>
+
+
+<h4><a name=ServiceKeys>Service Keys, Lookup and Rendezvous</h4>
+
+Service Keys are pervasive throughout the Pluton Framework. They have
+the following dot-separated syntax:
+
+<pre>
+	<a href=serviceKey.html>Application.Function.Version.Serialization</a>
+</pre>
+
+
+<p>Generally speaking, there is a one-to-one mapping between Service
+Keys used by the clients, the configuration file name, the Rendezvous
+Socket and the corresponding service instances. The one exception is
+the configuration wild-card feature.  If a Service Configuration
+filename contains a zero length "Function", this indicates that the
+service can accept any function not satisfied by a specific match, eg:
+
+<pre>
+	Application..Version.Serialization
+</pre>
+
+<p>Currently, this configuration wild-card feature is the only reason
+for the existence of the share memory lookup structure - to abstract
+the relationship between the Service Key lookup and the Rendezvous
+Socket. In future, further abstractions may be added to support
+wild-card matching of versions or aliasing features as determined by
+user demand.
+
+
+<h4><a name=Instances>Managing Service Instances</h4>
+
+The Service Configuration file defines the maximum number of service
+instances allowed. The objective of the plutonManager is to provide
+just enough services to enable fully concurrent access while staying
+within the configured limits. The service API participates in this
+process by sending periodic reports indicating the level of activity,
+response times and the like.
+
+<p>The algorithm for calculating the appropriate number of instances
+is evolving, but currently the algorithm treats the service instances
+as a queue and adjusts the number of instances to keep the queue at
+the configured level of occupancy. Other factors that affect the
+creation and destruction of instances include:
+
+<ul>
+<li>the configured request count limit beyond which an instance  exits
+<li>the configured inactivity time limit beyond which an idle instance
+exits (this feature only works on FreeBSD platforms that have the LIFO accept-order
+patch applied at Yahoo)
+</ul>
+
+Additionally, the plutonManager inhibits the rate at which new service
+instances are created to ensure a balanced load on the system. Factors
+which affect this rate are:
+
+<ul>
+<li>the exit rate and exit type of instances - abnormal exits prior to
+the complete processing of at least one request can defer
+the creation of new instances
+</ul>
+
+
+<h4><a name=Communicating>Communicating with Services</h4>
+
+A variety of techniques are used to communicate between the
+plutonManager and the service instances: exit status, signals, shared
+memory, environment variables, specially arranged file
+descriptors and a named pipe - phew! This plethora of techniques is
+largely a trade-off between performance and flexibility.
+
+<h5><a name=ExitStatus>2.4.1 Exit status and Resource Usage</h5>
+
+
+Since the plutonManager forks the instance, it uses <code>SIGCHLD</code> and
+<code>wait4()</code> to collection exit status and resource usage
+whenever a service
+instance exits.
+
+<h5><a name=Signals>2.4.2 Signals</h5>
+
+
+The plutonManager send various signals to the service.
+
+<p>
+<table border=1>
+<tr><td>SIGURG<td>to bring a service off an accept() call to check status</tr>
+<tr><td>SIGINT<td>first attempt to shutdown a service instance</tr>
+<tr><td>SIGTERM<td>second attempt to shutdown a service instance</tr>
+<tr><td>SIGKILL<td>third and final attempt to shutdown a service instance</tr>
+</table>
+
+<p>
+<code>SIGURG</code> is the only signal caught by the service API, all
+others are intended for the service itself. A service may choose to
+catch these signals, or preferably allow the default signal action
+occur.
+
+<h5><a name=SharedMemory>2.4.3 Shared Memory</h5>
+
+
+A small shared memory segment is allocated per service in which
+various configuration parameters and counters are exchanged between
+the service instances and the plutonManager. A separate shared memory
+segment is used from each different service to protect services for
+each other. If one service has bugs which corrupts the shared memory
+segment, the only processes affected are instances of that service.
+
+<h5><a name=ReportingSocket>2.4.4 Reporting Socket</h5>
+
+
+Each service is allocated a unique reporting socket which is used by
+the service API to periodically send performance data to the
+plutonManager. As with the shared memory segment, there is a separate
+Reporting Socket allocated for each service to insulate services from
+each other.
+
+<h5><a name=Environment>2.4.5 Environment Variables</h5>
+
+A number of environment variables are used to modify the behavior of
+the serviceAPI. They are primarily intended as debugging aids for the
+maintainers of the API and are unlikely to be of much use otherwise.
+
+<p>
+
+<table border=1>
+<tr><th>Variable Name<th>Purpose</tr>
+
+<tr><td><b>plutonAcceptSocket</b><td>Define the name of the socket
+to accept() connections from. This over-rides Arranged File
+Descriptors.</tr>
+
+<tr><td><b>plutonPacketTrace</b><td>Turns on debugging output to STDERR
+containing a dump of packet exchanges with the client.</tr>
+</table>
+
+<h5><a name=Arranged>2.4.6 Arranged File Descriptors</h5>
+
+
+A service can run in one of three modes. The service is in
+<em>accept-mode</em> when the environment variable
+<b>plutonAcceptSocket</b> is present; in <em>manager mode</em> when
+started by the plutonManager with particularly arranged file
+descriptors, otherwise the service defaults to <em>stand-alone
+mode</em>.
+
+<p>The file descriptors which are arranged by the plutonManager are:
+
+<p>
+<table border=1>
+<tr><th>File Descriptor<th>Type<th>Purpose</tr>
+
+<tr><td>3<td>S_IFSOCK<td>Accept connections from clients</tr>
+<tr><td>4<td>S_IFREG<td>Map per-service shared memory segment</tr>
+<tr><td>5<td>S_IFIFO<td>Write periodic performance reports</tr>
+</table>
+
+<p>All of these have to be present and of the correct type, to set the
+service in <em>manager mode</em>.
+
+
+<h3><a name=serviceAPI>Service API</h3>
+
+The major role of the service API is to present requests to the
+service instance. The interface for the service API is described <a
+href=serviceAPI.html>here</a>. The service API has four major
+functions:
+
+<ol>
+<li>at initialization, to establish which <i>mode</i> the service is
+running in - <i>manager</i>, <i>accept</i> or
+<i>stand-alone</i>
+
+<li>exchange requests with clients depending on the mode
+<ul>
+<li>via the passed Rendezvous Socket if in <i>manager mode</i>
+<li>via the socket named in the <i>plutonAcceptSocket</i> environment
+variable if in <i>accept mode</i>
+<li>via <code>fd3</code> and <code>fd4</code> if in <i>stand-alone mode</i>
+</ul>
+
+<li>send performance reports to the plutonManager via the Reporting
+Socket
+
+<li>maintain statistics in the service-specific shared memory segment
+
+</ol>
+
+The shared memory segment is updated after each request because
+updates are fast and cheap, however performance reports are only sent
+when the report buffer is full to amortize the cost of writing to the
+Reporting Socket across multiple requests.
+
+<p>Currently the service API registers a <code>SIGURG</code> handler as the
+plutonManager uses this signal to help the service API break out of a
+blocking accept() call. <code>SIGURG</code> is chosen because it defaults to ignore
+and it is unlikely to conflict with signal handlers which the caller
+may want to register.
+
+<p>However unlikely the use of <code>SIGURG</code> is by the caller, the service
+API still checks for a pre-installed handler and re-installs it prior
+to returning to the caller.
+
+<p>Note that the use of <code>SIGURG</code> <i>may</i> be replaced with an alarm()
+handler at some stage in the future if it proves more
+convenient.
+
+
+<h3><a name=clientAPI>Client API</h3>
+
+The major role of the client API is to discover services via the
+shared memory lookup structure, establish asynchronous connections to
+the Rendezvous Sockets and exchange requests. The interface for the
+client API is described <a href=clientAPI.html>here</a>.
+
+<p>Since multiple callers within a client may be oblivious to each
+other, the client API is implemented as a singleton and
+opportunistically makes connections and exchanges request data. As a
+consequence of this opportunity-based strategy, different callers
+within a client may have their requests interleaved when waiting on a
+response.
+
+<p>The client API maintains internal lists of out-standing requests
+and uses non-blocking I/O calls to implement the asynchronous
+functionality. The client API does not use threads of any type, though
+it is thread-safe if the <a href=threading.html>thread-safety</a>
+rules are followed. In the future, the client API may be implemented
+as a system thread to maximize parallel processing, however this
+implementation will not affect the API and callers will not need to
+change to take advantage of this optimization.
+
+<p>As manifest by the <code>pluton::executeAndWait*()</code> routines,
+the client API is primarily intended for use by procedural, blocking
+programs. However, there are a class of non-blocking programs such as
+network servers that cannot use blocking libraries. This class of
+non-blocking programs typically use I/O events in some form or
+other. For these programs, the
+<a href=clientAPINonBlock.html>non-blocking client API</a>
+offers a set of interfaces that externalize all the blocking requests
+which turns the client API into a completely non-blocking interface.
+
+<h3><a name=ClientServiceProtocol>Client/Service Protocol</h3>
+
+Requests exchanged between the client and service API are encapsulated
+as series of Yahoo-adapted <a
+href=http://cr.yp.to/proto/netstrings.txt>netstrings</a>. (The
+adaptations allows an alphabetic "type" character as a replacement for
+the leading colon and allows a newline as a replacement terminator for
+the trailing comma.)
+
+<p>Rather than nest netstrings to encapsulate a series of request data
+structures, the client/service protocol uses a netString type to
+indicate the end of a packet. This approach substantially reduces the
+cost and complexity of serializing and de-serializing requests. It also
+means that no temporary memory is required to serialize or de-serialize
+the requests.
+
+<p>The packet exchange between the client and service couldn't be
+simpler. The client opens the socket, sends the request, reads the
+response then closes the socket. If a client makes a
+<code>noWaitAttr</code> request, the service API closes the socket as
+soon as the full request has been received.
+
+<p>The variant to closing the socket immediately is an affinity
+request. In this case, the client API persists the connection until
+the caller stops making affinity requests.
+
+<p>A future consideration is that streaming exchanges may be allowed
+to follow the end of the packet. In essence the socket is directly
+handed over to the service once the formal response part has been
+sent.
+
+
+<h3><a name=ReportingProtocol>Service Reporting Protocol</h3>
+
+The services aggregate performance reports into a fixed-size array of
+reports. Typically when the array is full, the service writes this
+array back to the plutonManager via the Reporting Socket.
+
+<p>For simplicity, the data written to the Reporting Socket is always
+a fixed size binary structure, regardless of how many performance
+reports are present in the array. This fixed size structure is less
+then BUFSIZ to ensure a contiguous write back to the plutonManager.
+
+<p>
+<hr>
+<font size=-1>
+$Id: design.html 260483 2009-10-16 18:47:56Z markd $
+&copy; Copyright Yahoo! Inc, 2007, 2008
+</font>
+</body>
+</html>

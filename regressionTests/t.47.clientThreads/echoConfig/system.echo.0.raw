@@ -1,0 +1,4 @@
+exec			platform-services/echo
+minimum-processes	10
+maximum-processes	20
+prestart-processes	true

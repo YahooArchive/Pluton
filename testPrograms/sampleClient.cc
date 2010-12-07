@@ -1,0 +1,96 @@
+#include <string>
+#include <iostream>
+
+using namespace std;
+
+#include <stdlib.h>
+
+#include "pluton/client.h"
+
+//////////////////////////////////////////////////////////////////////
+// This is a sample pluton client that demonstrates the common parts
+// of the interface and uses them in various different ways for
+// demonstration purposes. This program compiles and runs if the
+// system.echo.0.raw service is running.
+//
+// Generally speaking, this is a well-coded pluton client from the
+// perspective that it assiduously checks all return codes and logs
+// all unexpected results.
+//////////////////////////////////////////////////////////////////////
+
+int
+main(int argc, char** argv)
+{
+  pluton::client C("sampleClient");
+  if (!C.initialize("")) {
+    clog << C.getFault().getMessage("Fatal: initialize() failed in sampleClient")  << endl;
+    exit(1);
+  }
+
+  //////////////////////////////////////////////////////////////////////
+  // Build up two requests
+  //////////////////////////////////////////////////////////////////////
+
+  pluton::clientRequest R1;
+  pluton::clientRequest R2;
+
+  R1.setRequestData("This is some request data");
+  R1.setAttribute(pluton::noRemoteAttr);
+  R1.setContext("name1", "value1");
+  R1.setContext("name2", "value2");
+
+  string r2req = "More of the same";
+  R2.setRequestData(r2req);
+
+  //////////////////////////////////////////////////////////////////////
+  // Add them to the execution list. This time alternate the use
+  // of hasFault() to test for errors rather than the return value.
+  //////////////////////////////////////////////////////////////////////
+
+  C.addRequest("system.echo.0.raw", &R1);
+  if (C.hasFault()) {
+    clog << C.getFault().getMessage("Fatal: addRequest(R1) failed in sampleClient") << endl;
+    exit(2);
+  }
+
+  if (!C.addRequest("system.echo.0.raw", &R2)) {
+    clog << C.getFault().getMessage("Fatal: addRequest(R2) failed in sampleClient") << endl;
+    exit(3);
+  }
+
+  //////////////////////////////////////////////////////////////////////
+  // Now execute the requests and wait for them all to complete
+  //////////////////////////////////////////////////////////////////////
+
+  if (C.executeAndWaitAll() <= 0) {
+    clog << C.getFault().getMessage("Fatal: executeAndWaitAll() failed in sampleClient") << endl;
+    exit(4);
+  }
+
+  //////////////////////////////////////////////////////////////////////
+  // A request can have a fault, even though the execute worked
+  //////////////////////////////////////////////////////////////////////
+
+  if (R1.hasFault()) {
+     clog << "R1 Fault Code=" << R1.getFaultCode() << " Text=" << R1.getFaultText() << endl;
+  }
+  if (R2.hasFault()) {
+     clog << "R2 Fault Code=" << R2.getFaultCode() << " Text=" << R2.getFaultText() << endl;
+  }
+
+  string resp1;
+  string resp2;
+  R1.getResponseData(resp1);
+  R2.getResponseData(resp2);
+
+  clog << "R1 Response: " << resp1 << endl;
+  clog << "R2 Response: " << resp2 << endl;
+
+  const char* p;
+  int l;
+  R1.getResponseData(p, l);
+
+  clog << "R1 another way: " << string(p,l) << endl;
+
+  return 0;		// Cause destructor to be called
+}

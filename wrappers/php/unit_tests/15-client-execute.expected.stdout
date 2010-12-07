@@ -1,0 +1,6 @@
+executeAndWaitOne returned 1
+executeAndWaitOne = 1 = ok
+executeAndWaitAny returned 3 or 10 - good
+executeAndWaitAny first = ok
+executeAndWaitAny returned 10 or 3 - good
+Second executeAndWaitAny second = ok

@@ -1,0 +1,113 @@
+<html>
+<head>
+<link rel="shortcut icon" href=images/pluto-symbol.jpg type="image/x-icon" />
+<title>
+The Pluton Framework: Sample Client
+</title>
+</head>
+
+<body>
+
+<center>
+<a href=index.html>
+<img height=100 src=images/pluto-charon.jpg ALT="[Pluto Charon Image]">
+</a>
+</center>
+
+<h2 align=center>The Pluton Framework: Sample Client</h2>
+
+This sample client program uses the <a href=clientAPI.html>Pluton
+Client API</a> to make two service requests in parallel (to
+<code>Mail.newMail.0.XML</code> and
+<code>weather.forecast.3.JSON</code> respectively) and waits for all
+of them to complete.
+
+<p>
+
+<center>
+<table border=1>
+<td>
+<pre>
+ #include &lt;iostream&gt;
+ #include &lt;string&gt;
+
+ #include &lt;pluton/client.h&gt;
+
+ int
+ main(int argc, char** argv)
+ {
+     pluton::client C("sampleClient");
+     C.initialize();
+
+
+     // Prepare requests using service-specific serialization
+     //
+
+     pluton::clientRequest  newMailRequest;
+     pluton::clientRequest  weatherRequest;
+
+     newMailRequest.setRequestData("&lt;xml&gt;&lt;addr myemailAddress@yahoo.com&lt;/addr&gt;");
+     weatherRequest.setRequestData("{ \"Location\": { \"city\":\"sunnyvale\", \"state\":\"ca\" }");
+
+
+     // Add requests to execute queue
+     //
+
+     C.addRequest("Mail.newMail.0.XML", newMailRequest);
+     if (C.hasFault()) {
+        std::clog << C.getFault().getMessage("Mail.newMail.0.XML") << std::endl;
+	exit(1);
+     }
+
+     C.addRequest("weather.forecast.3.JSON", weatherRequest);
+     if (C.hasFault()) {
+        std::clog << C.getFault().getMessage("weather.forecast.3.JSON") << std::endl;
+	exit(2);
+     }
+
+
+     // Execute requests in parallel and wait for all to complete
+     //
+
+     C.executeAndWaitAll();
+     if (C.hasFault()) {
+        std::clog << C.getFault().getMessage() << std::endl;
+	exit(3);
+     }
+
+
+     // Extract responseData from the completed requests...
+     //
+
+     std::string newMail, weather;
+
+     newMailRequest.getResponseData(newMail);
+     weatherRequest.getResponseData(weather);
+
+
+     // ...and write as un-deserialized data to cout.
+     //
+
+     std::cout &lt;&lt; "new Mail=" &lt;&lt; newMail &lt;&lt; std::endl;
+     std::cout &lt;&lt; "weather=" &lt;&lt; weather &lt;&lt; std::endl;
+
+     C.terminate();
+
+     return(0);
+ }
+</pre>
+</table>
+</center>
+
+<p>
+This client actually compiles and runs - albeit with a resulting fault
+due to referencing non-existent services.
+
+<p>
+<hr>
+<font size=-1>
+$Id: sampleClient.html 263341 2009-11-26 17:35:13Z markd $
+&copy; Copyright Yahoo! Inc, 2007
+</font>
+</body>
+</html>

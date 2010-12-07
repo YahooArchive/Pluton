@@ -1,0 +1,26 @@
+1. sudo make install
+
+2. Start the manager - from one shell
+
+   $ export LD_LIBRARY_PATH=/usr/local/lib
+   $ sh run_manager.sh
+
+3. Send a service request with plSend/plPing - from another shell
+
+   $ export LD_LIBRARY_PATH=/usr/local/lib
+   $ 
+   $ plSend -n system.echo.0.raw "echo me"
+   $ plPing -c 5
+
+
+Notes:
+
+o Sending a SIGINT (typically ctrl-C) from the manager terminal causes
+  a configuration reload
+
+o Sending a SIGTERM (typically ctrl-\) from the manager terminal
+  causes the manager to shutdown
+
+
+In a production environment, the plutonManager is designed to run as a
+supervised process (see http://cr.yp.to/daemontools.html)

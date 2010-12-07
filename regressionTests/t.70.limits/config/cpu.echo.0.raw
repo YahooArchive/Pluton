@@ -1,0 +1,3 @@
+exec platform-services/cpuLoop
+ulimit-cpu-milliseconds 1
+maximum-requests 100

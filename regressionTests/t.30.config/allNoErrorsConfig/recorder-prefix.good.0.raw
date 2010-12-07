@@ -1,0 +1,2 @@
+recorder-prefix		record.
+exec /bin/echo

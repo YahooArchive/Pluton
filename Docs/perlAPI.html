@@ -1,0 +1,300 @@
+<html>
+<head>
+<link rel="shortcut icon" href=images/pluto-symbol.jpg type="image/x-icon" />
+<title>
+The Pluton Framework: Perl API
+</title>
+</head>
+
+<body>
+
+<center>
+<a href=index.html>
+<img height=100 src=images/pluto-charon.jpg ALT="[Pluto Charon Image]">
+</a>
+</center>
+
+<h2 align=center>The Pluton Framework: Perl API</h2>
+
+<h3>Introduction</h3>
+
+The perl API is a <a href=http://www.swig.org>swig</a> based wrapper
+around the C++ <a href=clientAPI.html>client</a> and
+<a href=serviceAPI.html>service</a> APIs.
+
+
+As far as possible, the perl API is identical to the C++ version
+excepting where interfaces had to be modified to suit swig. Such
+modifications mainly relate to passing std::string by reference.
+<p>
+
+Perl programmers should familiarize themselves with the C++
+APIs as they explain when methods are used
+and why. The intent of this document is simply to highlight the
+differences rather than act as a tutorial on how to write a
+client.
+
+<h3>Sample Programs</h3>
+
+To introduce the interface, this sample perl client demonstrates sending a
+request to the <code>system.echo.0.raw</code> service.
+
+<p>
+<table border=1>
+<td>
+<pre>
+use Yahoo::pluton;
+
+my $c = Yahoo::pluton::client->new("perlbaby");
+$c->initialize("");
+
+my $r = Yahoo::pluton::clientRequest->new();
+
+$r->setRequestData("12345abcd");
+
+
+if (! $c->addRequest("system.echo.0.raw", $r)) {
+    print $c->getFault()->getMessage("add Request"), "\n";
+    exit(1);
+}
+
+$c->executeAndWaitAll();
+
+# Check for client communication errors
+if ($c->hasFault()) {
+    print $c->getFault()->getMessage("E&W"), "\n";
+    exit(1);
+}
+
+# Check that the request completed ok
+if ($r->hasFault()) {
+    print "Request faultCode: " . $r->getFaultCode() . " tx: " . $r->getFaultText();
+    print " Service: " . $r->getServiceName() . "\n";
+    exit(1);
+}
+
+my $s = $r->getResponseData();
+
+print "Response Data: ", $s, "\n";
+</pre>
+</table>
+
+<p>
+and this sample perl service demonstrates what a simple echo service might
+look like:
+
+<p>
+<table border=1>
+<td>
+<pre>
+use Yahoo::pluton;
+
+my $s = Yahoo::pluton::service->new("perlbaby");
+$s->initialize();
+
+while ($s->getRequest()) {
+    my $str = $s->getRequestData();
+    break if $s->hasFault();
+
+    if (length($str) == 0) {
+        $s->sendFault(1, "Empty request is invalid");
+    }
+    else {
+        my $response = "Your request is " . length($str) . " bytes long";
+        $s->sendResponse($response);
+    }
+}
+
+if ($s->hasFault()) {
+    print STDERR "Service Fault: ",
+    $s->getFault()->getMessage("getRequest"), "\n";
+    exit(0);
+}
+
+$s->terminate();
+exit(0);
+
+</pre>
+</table>
+
+
+<h3>ClientRequest Methods</h3>
+
+In all cases, clients must have a <p>
+
+<pre>
+use Yahoo::pluton;
+</pre>
+
+<p>
+line in their program.
+
+<p>
+The following table lists the
+<code>Yahoo::pluton::clientRequest</code> methods available to
+perl and what differences there are between it and the C++ version, if
+any. If a method is not listed here, it is not
+available to perl.
+<p>
+
+<table border=1>
+<tr valign=top><th align=left>Yahoo::pluton::clientRequest Method<th align=left>Same as C++<th align=left>Comments</tr>
+
+<tr valign=top><th align=left><a href=clientAPI.html#preparing>new()/delete()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#setRequestData>setRequestData()</a><td>Yes<td></tr>
+
+<tr valign=top><th align=left><a href=clientAPI.html#setAttribute>setAttribute()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#getAttribute>getAttribute()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#clearAttribute>clearAttribute()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#setContext>setContext()</a><td>Yes<td></tr>
+
+<tr valign=top><th align=left><a href=clientAPI.html#setRequestData>setRequestData()</a><td>Yes<td>Only the
+single parameter version available, eg:<br>
+<pre>
+my $r = Yahoo::pluton::clientRequest->new();
+$r->setRequestData("Here is some data");
+<pre>
+</tr>
+
+<tr valign=top><th align=left><a href=clientAPI.html#getResponseData>getResponseData()</a><td>No<td>Response
+data is made available via the return value rather than via a passed parameter, eg:<br>
+<pre>
+my $rd = $r->getResponseData();
+</pre>
+</tr>
+
+<tr valign=top><th align=left><a href=clientAPI.html#inProgress>inProgress()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#hasFault>hasFault()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#getFaultCode>getFaultCode()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#getFaultText>getFaultText()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#getServiceName>getServiceName()</a><td>Yes<td></tr>
+
+</table>
+
+<h3>Client Methods</h3>
+
+In all cases, clients must have a <p>
+
+<pre>
+use Yahoo::pluton;
+</pre>
+
+<p>
+line in their program.
+
+
+<p>
+The following table lists the <code>Yahoo::pluton::client</code>
+methods available to perl and what differences there are between it
+and the C++ version, if any. If a method is not listed here, it is
+not available to perl.
+<p>
+
+<table border=1>
+<tr valign=top><th align=left>Yahoo::pluton::client Method<th align=left>Same as C++<th align=left>Comments</tr>
+
+<tr valign=top><th align=left><a href=clientAPI.html#construction>new()/delete()<td>Yes<td></tr>
+
+<tr valign=top><th align=left><a href=clientAPI.html#getAPIVersion>getAPIVersion()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#initialize>initialize()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#clientHasFault>hasFault()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#clientGetFault>getFault()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#setDebug>setDebug()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#setTimeoutMilliSeconds>setTimeoutMilliSeconds()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#getTimeoutMilliSeconds>getTimeoutMilliSeconds()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#addRequest>addRequest()</a><td>Yes<td>Supplied
+parameter is a reference to a
+<code>Yahoo::pluton::clientRequest</code> object rather than a <code>pluton::clientRequest</code></tr>
+
+<tr valign=top><th align=left><a href=clientAPI.html#executeAndWaitSent>executeAndWaitSent()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#executeAndWaitAll>executeAndWaitAll()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=clientAPI.html#executeAndWaitAny>executeAndWaitAny()</a><td>Yes<td>Return
+value is a reference to a
+<code>Yahoo::pluton::ClientRequest</code> object</tr>
+
+<tr valign=top><th align=left><a href=clientAPI.html#executeAndWaitOne>executeAndWaitOne()</a><td>Yes<td>Supplied
+parameter is a reference to a
+<code>Yahoo::pluton::ClientRequest</code> object</tr>
+
+</table>
+
+<h3>Service Methods</h3>
+
+In all cases, services must have a <p>
+
+<pre>
+use Yahoo::pluton;
+</pre>
+
+<p>
+line in their program.
+
+
+<p>
+The following table lists the <code>Yahoo::pluton::service</code>
+methods available to perl and what differences there are between it
+and the C++ version, if any. If a method is not listed here, it is not
+available to perl.
+<p>
+
+<table border=1>
+<tr valign=top><th align=left>Yahoo::pluton::service Method<th align=left>Same as C++<th align=left>Comments</tr>
+
+<tr valign=top><th align=left><a href=serviceAPI.html#instanceManagement>new()/delete()</a><td>Yes<td></tr>
+
+<tr valign=top><th align=left><a href=serviceAPI.html#getAPIVersion>getAPIVersion()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=serviceAPI.html#initialize>initialize()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=serviceAPI.html#hasFault>hasFault()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=serviceAPI.html#getFault>getFault()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=serviceAPI.html#getRequest>getRequest()</a><td>Yes<td></tr>
+
+<tr valign=top><th align=left><a href=serviceAPI.html#sendResponse>sendResponse()</a><td>Yes<td>Only the
+single parameter version available, eg:<br>
+<pre>
+my $s = Yahoo::pluton::service->new();
+$s->sendResponse("Here is some data");
+<pre>
+</tr>
+
+<tr valign=top><th align=left><a href=serviceAPI.html#sendFault>sendFault()</a><td>Yes<td></tr>
+<tr valign=top><th align=left><a href=serviceAPI.html#terminate>terminate()</a><td>Yes<td></tr>
+
+<tr valign=top><th align=left><a href=serviceAPI.html#getServiceKey>getServiceKey()</a><td>No<td>No parameter is
+passed to this routine</tr>
+
+<tr valign=top><th align=left><a href=serviceAPI.html#getServiceApplication>getServiceApplication()</a><td>No<td>No parameter is
+passed to this routine</tr>
+<tr valign=top><th align=left><a href=serviceAPI.html#getServiceFunction>getServiceFunction()</a><td>No<td>No parameter is
+passed to this routine</tr>
+
+<tr valign=top><th align=left><a href=serviceAPI.html#getServiceVersion>getServiceVersion()</a><td>Yes<td></tr>
+
+<tr valign=top><th align=left><a href=serviceAPI.html#getSerializationType>getSerializationType()</a><td>No<td>Serialization type is
+returned as a string rather than an <code>enum</code> value</tr>
+
+<tr valign=top><th align=left><a href=serviceAPI.html#getClientName>getClientName()</a><td>No<td>No parameter is
+passed to this routine</tr>
+
+<tr valign=top><th align=left><a href=serviceAPI.html#getRequestData>getRequestData()</a><td>No<td>No parameter is
+passed to this routine - Request data is the return value</tr>
+
+<tr valign=top><th align=left><a href=serviceAPI.html#getContext>getContext()</a><td>No<td>No second parameter is
+passed to this routine - Context data is the return value, eg:
+<br>
+<pre>
+my $cd = $r->getContextData("echo.timeoutMS");
+print "Context data is $cd\n";
+</pre>
+</tr>
+
+
+</table>
+
+<p>
+<hr>
+<font size=-1>
+$Id: perlAPI.html 260483 2009-10-16 18:47:56Z markd $
+&copy; Copyright Yahoo! Inc, 2007
+</font>
+</body>
+</html>

@@ -1,0 +1,208 @@
+#if !defined(lint)
+static const char * rcsid __attribute__ ((__unused__)) = "(@)# $Id: sampleEventClient.cc.txt,v 1.4 2009/05/14 15:54:18 markd Exp $";
+#endif
+
+#include <iostream>
+#include <string>
+
+#ifdef __FreeBSD__
+#include <sys/types.h>
+#include <sys/time.h>
+#include <unistd.h>
+#else
+#include <sys/select.h>
+#endif
+
+#include <errno.h>
+#include <assert.h>
+#include <time.h>
+#include <unistd.h>
+
+#include "pluton/clientEvent.h"
+
+using namespace std;
+
+int
+main(int argc, char **argv)
+{
+
+  pluton::clientEvent C("tClientEvent2");
+
+  if (!C.initialize(argv[1])) {
+    cerr << "Error: Could not initialize pluton." << endl;
+    exit(1);
+  }
+
+
+  //////////////////////////////////////////////////////////////////////
+  // Create a couple of requests that exercise the subsequent event
+  // code. R1 is purposely constructed to time out and R2 is designed
+  // to complete normally.
+  //////////////////////////////////////////////////////////////////////
+
+  pluton::clientRequest R1;
+  pluton::clientRequest R2;
+
+  R1.setClientHandle((void*) "R1");
+  R1.setContext("echo.sleepMS", "3000");
+  C.addRequest("system.echo.0.raw", &R1, 1000);
+
+  R2.setClientHandle((void*) "R2");
+  R2.setContext("echo.sleepMS", "500");
+  char buffer[300000];
+  R2.setRequestData(buffer, sizeof(buffer));
+  C.addRequest("system.echo.0.raw", &R2, 1000);
+
+  time_t endTime = time(0) + 4;	// Make sure we don't get trapped
+  int completedCount = 0;
+
+  //////////////////////////////////////////////////////////////////////
+  // As the documentation says, once an fd/event pair is given to us
+  // we have to remember it until returned. It's easy to use the
+  // fd_set structure to remember which fds we have, plutonReadFDs and
+  // plutonWriteFDs serve that purpose.
+  //////////////////////////////////////////////////////////////////////
+
+  fd_set plutonReadFDs, plutonWriteFDs;
+  FD_ZERO(&plutonReadFDs);
+  FD_ZERO(&plutonWriteFDs);
+  int maxFD = 0;
+
+  //////////////////////////////////////////////////////////////////////
+  // This is the main loop that looks for completed requests and
+  // handles event requirements returned by the library. Iterate until
+  // at least one request is complete or we have exceeded the total
+  // amount of time we're prepared to wait.
+  //////////////////////////////////////////////////////////////////////
+
+  while ((completedCount < 2) && (endTime > time(0))) {
+
+
+    //////////////////////////////////////////////////////////////////////
+    // Collect any new events that are wanted by clientEvent and
+    // transfer them into the appropriate fd_set. Once an event is in
+    // our hands, so to speak, the clientEvent library will not look
+    // at the corresponding request(s).
+    //////////////////////////////////////////////////////////////////////
+
+    struct timeval now;
+    gettimeofday(&now, 0);
+    const pluton::clientEvent::eventWanted* ep;
+
+    while ((ep = C.getNextEventWanted(&now))) {
+      if (ep->fd > maxFD) maxFD = ep->fd;
+      switch (ep->type) {
+      case pluton::clientEvent::wantRead:
+	FD_SET(ep->fd, &plutonReadFDs);
+	break;
+
+      case pluton::clientEvent::wantWrite:
+	FD_SET(ep->fd, &plutonWriteFDs);
+	break;
+
+      default: exit(4);
+      }
+    }
+
+    //////////////////////////////////////////////////////////////////////
+    // Prepare the select. Because select zeroes out the fds that are
+    // not ready, copy the fd_set to temporaries.
+    //////////////////////////////////////////////////////////////////////
+
+    fd_set readFDs;
+    fd_set writeFDs;
+
+    readFDs = plutonReadFDs;
+    writeFDs = plutonWriteFDs;
+
+    //////////////////////////////////////////////////////////////////////
+    // For demonstration purposes, show how additional fds can be
+    // added into the mix.
+    //////////////////////////////////////////////////////////////////////
+
+    FD_SET(0, &readFDs);
+
+    //////////////////////////////////////////////////////////////////////
+    // Strictly speaking, the select timeout should be the minimum of
+    // any of the timeouts returned by getNextEventWanted(), but in
+    // this 1/10th of a second granularity for timeout detection is
+    // more than adequate so don't bother tracking what the minimum
+    // should actually be.
+    //////////////////////////////////////////////////////////////////////
+
+    struct timeval timeout;
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 100000;	// 1/10th of a second
+
+    int res = select(maxFD+1, &readFDs, &writeFDs, 0, &timeout);
+
+    if (res == -1) {
+      cerr << "Unexpected error from select() errno=" << errno << endl;
+      exit(1);
+    }
+
+    //////////////////////////////////////////////////////////////////////
+    // If a timeout occurred, all of the pluton fds must be notified
+    // and consequently control returns to pluton.
+    //////////////////////////////////////////////////////////////////////
+
+    if (res == 0) {
+      for (int ix=1; ix <= maxFD; ++ix) {
+	if (FD_ISSET(ix, &plutonReadFDs) || FD_ISSET(ix, &plutonWriteFDs)) {
+	  int sr = C.sendTimeoutEvent(ix);
+	  if (sr < 0) exit(-sr + 30);		// Sanity check
+	}
+      }
+      FD_ZERO(&plutonReadFDs);			// Control of all fds is returned
+      FD_ZERO(&plutonWriteFDs);			// as part of sendTimeoutEvent()
+    }
+    else {
+
+    //////////////////////////////////////////////////////////////////////
+    // At least one fd is ready. Check my fds first. Again, this
+    // demonstrates mixing other events with pluton events.
+    //////////////////////////////////////////////////////////////////////
+
+      if (FD_ISSET(0, &readFDs)) {
+	char rbuf[100];
+	read(0, rbuf, sizeof(rbuf));
+      }
+
+      //////////////////////////////////////////////////////////////////////
+      // Check which of the pluton fds is ready and pass them back
+      // into the library; remembering to remove them from the
+      // remembered set.
+      //////////////////////////////////////////////////////////////////////
+
+      for (int ix=1; ix <= maxFD; ++ix) {
+	if (FD_ISSET(ix, &readFDs)) {
+	  cout << "Returning read event for " << ix << endl;
+	  int sr = C.sendCanReadEvent(ix);
+	  if (sr < 0) exit(-sr + 10);		// Sanity check
+	  FD_CLR(ix, &plutonReadFDs);
+	}
+	if (FD_ISSET(ix, &writeFDs)) {
+	  cout << "Returning write event for " << ix << endl;
+	  int sr = C.sendCanWriteEvent(ix);
+	  if (sr < 0) exit(-sr + 20);		// Sanity check
+	  FD_CLR(ix, &plutonWriteFDs);
+	}
+      }
+    }
+
+    //////////////////////////////////////////////////////////////////////
+    // Check for any completed requests - the real purpose of this
+    // program!	 Normally of course something would be done with these
+    // requests once they are complete, but in this code we simply
+    // print a message.
+    //////////////////////////////////////////////////////////////////////
+
+    pluton::clientRequest* R;
+    while ((R = C.getCompletedRequest())) {
+      cout << "Request completed: " << (void*) R->getClientHandle() << endl;
+      ++completedCount;
+    }
+  }
+
+  exit(0);
+}

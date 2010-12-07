@@ -1,0 +1,42 @@
+#! /bin/sh
+
+# This script attempts to kill all processes attached to unix
+# sockets in the pluton rendezvous directory.
+
+RendezvourDIR=${1:-.}
+
+if [ -z "$RendezvourDIR" ]; then
+    echo Error: Must supplied a Rendezvous Directory as argument one
+    exit 1
+fi
+
+if [ ! -d "$RendezvourDIR" ]; then
+    echo Error: $RendezvourDIR is not a valid Rendezvous directory
+    exit 1
+fi
+
+# If the directory is empty, we're done
+
+flist=`find $RendezvourDIR -name '*.mmap' -print`
+[ -z "$flist" ] && exit 0
+
+# Get the process list just once
+
+plist=`lsof -t $flist 2>/dev/null| sort -u`
+[ -z "$plist" ] && exit 0
+
+echo Process target count: `echo $plist | wc -l`
+
+
+# Do the same thing the manager does, escalate the signals
+
+for sig in URG INT TERM KILL
+do
+
+  echo $plist | xargs kill -s $sig
+
+  sleep 1
+
+done
+
+exit 0

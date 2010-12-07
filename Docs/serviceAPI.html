@@ -1,0 +1,1080 @@
+<html>
+<head>
+<link rel="shortcut icon" href=images/pluto-symbol.jpg type="image/x-icon" />
+<title>
+The Pluton Framework: Service API
+</title>
+</head>
+
+<body>
+
+<center>
+<a href=index.html>
+<img height=100 src=images/pluto-charon.jpg ALT="[Pluto Charon Image]">
+</a>
+</center>
+
+<h2 align=center>The Pluton Framework: Service API</h2>
+
+<h3>Introduction</h3>
+
+The service API provides the mechanism by which a service accepts
+requests for clients. The API is written in C++ and a PHP wrapper is
+<i>in the works</i> - as they say.
+<p>
+The service API is purposely constrained to ensure that a service can
+only process a single request at a time. In part this protects from
+inadvertent co-mingling of data, but is also helps enforce the model
+of keeping service interactions as simple as possible.
+
+<p>
+The follow sample service program demonstrates the main calls used
+by all services.
+<p>
+<center>
+<table border=1>
+<td>
+
+<pre>
+00:  #include &lt;iostream&gt;
+01:  #include &lt;pluton/service.h&gt;
+02:
+03:  using namespace std;
+04:
+05:
+06:  int
+07:  main(int argc, char** argv)
+08:  {
+09:      pluton::service S;
+10:      const char* str;
+11:      int len;
+12:
+13:      if (!S.initialize()) exit(1);
+14:
+15:      while (S.getRequest()) {
+16:      S.getRequestData(&ptr, &len);
+17:      if (len > 0) {
+18:          S.sendResponse("Hello Worlds, all eight of you!");
+19:        }
+20:        else {
+21:          S.sendFault(1, "Request data must not be zero length - sorry folks");
+22:        }
+23:      }
+24:
+25:      if (S.hasFault()) clog << "Fault: " << S.getFault().getMessage() << endl;
+26:
+27:      S.terminate();
+28:
+29:      exit(0);
+30:  }
+</pre>
+</table>
+</center>
+
+<p>
+The <code>getRequest()</code> method at line 15 and the <code>sendResponse()</code> method at
+line 18 are the only methods available to a service to exchange requests with a
+client. The <code>pluton::service</code> object provides a number of
+methods for getting various attributes of the request.
+
+<p>
+The length test at line 17 is simply a device to demonstrate
+the use of
+<a href=#sendResponse><code>pluton::service::sendResponse()</code></a>
+versus
+<a href=#sendFault><code>pluton::service::sendFault()</code></a>
+.
+
+<h3>Sample Code</h3>
+To assist in bootstrapping the development of new services, <a
+href=sampleService.cc.txt>this source code</a> of a sample
+service may provide you with a useful starting point.
+
+<h3>Table of Contents</h3>
+
+
+<a href=#instanceManagement>Instance management</a> is provided by:
+
+<ul>
+<li><a href=#construct><code>pluton::service()</code></a> construction
+<li><a href=#initialize><code>pluton::service::initialize()</code></a>
+<li><a href=#getAPIVersion><code>pluton::service::getAPIVersion()</code></a>
+<li><a href=#terminate><code>pluton::service::terminate()</code></a>
+</ul>
+
+Methods for <a href=#serviceExchange>exchanging requests</a> are:
+
+<ul>
+<li><a href=#getRequest><code>pluton::service::getRequest()</code></a>
+<li><a href=#sendResponse><code>pluton::service::sendResponse()</code></a>
+<li><a href=#sendFault><code>pluton::service::sendFault()</code></a>
+</ul>
+
+and <a href=#serviceRequest>methods</a> for accessing request
+attributes and data:
+
+<ul>
+<li><a href=#getServiceKey><code>pluton::service::getServiceKey()</code></a>
+<li><a href=#getServiceApplication><code>pluton::service::getServiceApplication()</code></a>
+<li><a href=#getServiceFunction><code>pluton::service::getServiceFunction()</code></a>
+<li><a href=#getServiceVersion><code>pluton::service::getServiceVersion()</code></a>
+<li><a href=#getSerializationType><code>pluton::service::getSerializationType()</code></a>
+<li><a href=#getClientName><code>pluton::service::getClientName()</code></a>
+<li><a href=#getRequestData><code>pluton::service::getRequestData()</code></a>
+<li><a href=#getContext><code>pluton::service::getContext()</code></a>
+</ul>
+
+<p>
+For fault detection, the <code>pluton:service</code> class provides:
+
+<ul>
+<li>
+<a href=#hasFault><code>pluton::service::hasFault()</code></a>
+and
+<a href=#serviceGetFault><code>pluton::service::getFault()</code></a>
+</ul>
+
+
+<h3>Service exit() codes</h3>
+
+<p>To further communicate with the <code>plutonManager</code> a set of
+exit codes have been defined that are used when a service cannot be
+started for some reason. These exit codes are in the range 11-30. A
+service should avoid exiting with codes in this range. It's not
+disastrous if you do, but the exit code results in a log message
+which will otherwise be misleading.
+
+<ul>
+<li><a href=#exitCodes>Reserved exit() codes</a>
+</ul>
+
+
+<h3>Rules for Services</h3>
+
+To operate within the pluton Framework, services need to obey the
+following <i>modest</i> set of rules.
+
+<p>
+<table border=1>
+<tr><th>Rule<th>Rationale</tr>
+
+<tr valign=top><td>Do not write to STDOUT<td>STDOUT is closed
+when a service is running in <i>manager mode</i>.
+</tr>
+
+<tr valign=top><td>Be parsimonious with STDERR output<td>Output to STDERR is sent to
+the plutonManager where it is typically written to a log file. Avoid
+swamping the plutonManager logs with lots of goop.
+
+In fact, services should not normally need to generate any logging
+information - if they detect an error situation, they should write a single
+explanatory message to STDERR and exit() with a non-zero exit status.
+</tr>
+
+<tr valign=top><td>Exit on error<td>Do not try and recover from errors such as
+connection failures. It is much better to exit() and rely on the retry logic
+built into the plutonManager than having each service write retry logic.
+</tr>
+
+<tr valign=top><td>Use a zero exit status to indicate
+recoverable errors<td>The plutonManager will immediately restart a service on
+detecting a zero exit code. A recoverable error is one where a retry
+is likely to succeed.
+</tr>
+
+<tr valign=top><td>Use a non-zero exit status to indicate
+un-recoverable errors<td>The plutonManager defers restarting
+un-recoverable services and it drains the accept queue until
+a new service instances is started. An un-recoverable error is one
+where a retry is unlikely to succeed.
+</tr>
+
+<tr valign=top><td>Do not fork()<td>The plutonManager relies on knowing the
+process ID of the service instance to send signals and detect process exits.
+
+<p>If the configured service is actually a shell-wrapper make sure you
+<code>exec</code> the real program as the last line of the script.
+</tr>
+
+<tr valign=top><td>Do initialize prior to calling the service API<td>Not only is
+this good
+practice, it helps the plutonManager accurately measure the service
+cost of each request.
+</tr>
+
+</table>
+
+
+<h3><a name=instanceManagement>Instance Management</h3>
+
+<h4><a name=construct><code>pluton::service</code> construction</h4>
+
+A service communicates with a client via a
+<code>pluton::service</code> object.
+
+<h4>pluton::service</h4>
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/service.h&gt;
+
+    pluton::service S(const char* serviceName="");
+
+</pre>
+
+
+<h5>PARAMETERS</h5>
+
+
+<table border=1>
+<tr><th>Name<th>Description</tr>
+
+<tr valign=top><td>serviceName<td>The name of the service. This value is used to
+identify the service for logging and scoreboard purposes.
+
+</tr>
+</table>
+
+<p>
+
+<h4><a name=initialize>pluton::service::initialize()</h4>
+
+The <code>initialize()</code> method prepares the service for
+exchanging requests. The primary reason for providing a separate
+initialization function after construction is so that the caller can
+detect errors without having to <i>catch</i> construction failures.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/service.h&gt;
+
+    pluton::service S;
+
+    bool S.initialize();
+</pre>
+
+
+<h5>PARAMETERS</h5>
+
+None.
+
+<h5>RETURN VALUE</h5>
+
+The boolean returns <code>true</code> on success and
+<code>false</code> on failure. On failure the <code>getFault()</code>
+can be called to get a description of the failure. A service should
+terminate on failure to initialize.
+
+<h5>DESCRIPTION</h5>
+<code>initialize()</code> must be the first call after construction of
+<code>pluton::service</code>. A service normally calls
+<code>initialize()</code> after all other application initialization
+is complete.
+
+<p>
+A service runs in one of three modes: As a standalone service
+listening to a named socket; as a process managed by the plutonManager
+and as a standalone service exchanging requests from pre-defined file
+descriptors. <code>initialize()</code> determines how the service has been invoked
+based on environment variables and inherited file descriptors.
+
+<p>
+A service is generally unaware of the mode it is being invoked with
+and purposely has no easy way to discover it, so the following
+description is primarily background information on how
+<code>initialize()</code> determines which mode the service is being
+run in.
+
+<h5>Standalone listening to a named socket</h5>
+
+If the environment variable <b>plutonAcceptSocket</b> is set, the
+<code>initialize()</code> method runs in standalone mode and accepts
+connections on the named pipe at the location defined by the value of
+<b>plutonAcceptSocket</b>.
+
+<p>This mode is primarily intended as a diagnostic mode by the authors
+of the API.
+
+<h5>A process managed by the plutonManager</h5>
+
+If the environment variable <b>plutonAcceptSocket</b> is not set,
+<code>initialize()</code> determines whether it is running as a managed
+process. This determination is based on finding the exact set of file
+descriptors and types that are pre-arranged by the plutonManager and
+inherited by managed services.
+
+<p>If the exact set of file descriptors are found,
+<code>initialize()</code> arranges to accept requests and communicate with
+the plutonManager via the inherited file descriptors.
+
+<p>This is the mode that a service runs as when managed by the plutonManger.
+
+<h5>Standalone exchange with pre-defined file descriptors</h5>
+
+If <code>initialize()</code> does not detect either of the other modes, it
+defaults to exchanging requests via pre-defined file
+descriptors. This mode is intended as a convenient way to test
+services and run regression tests from shell scripts or the command
+line.
+<p>
+In this mode, <code>getRequest()</code> reads requests from file
+descriptor 3 and writes responses to file descriptor 4. Thus running a
+service from the command line might look like this:
+
+<pre>
+	$ ./somepath/yourService 3&lt;requestFile 4&gt;responseFile
+</pre>
+
+The purpose of this mode is to provide a way in which a service can be
+easily tested and debugged.
+
+<p>
+In all cases, the service is oblivious to the mode. All the
+differences are managed by the pluton::service API.
+
+<h4><a name=getAPIVersion>pluton::service::getAPIVersion()</h4>
+
+Provide <code>pluton::service</code> version information for debugging
+purposes. A service does not normally make this call.
+
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;string&gt;
+    #include &lt;pluton/service.h&gt;
+
+    pluton::service S;
+
+    const char* S.getAPIVersion();
+</pre>
+
+<h5>RETURN VALUE</h5>
+
+<p>The returned string is the RCS ID of the source version used to build
+this API. Recording this value with an error message may offer some
+diagnostic value to the API maintainers.
+
+<h4><a name=terminate>pluton::service::terminate()</h4>
+
+The <code>terminate()</code> method is used to send a final Status
+Report to the plutonManager and close associated file descriptors.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/service.h&gt;
+
+    pluton::service S;
+
+    void S.terminate();
+</pre>
+
+<H5>DESCRIPTION</h5>
+
+A call to <code>terminate()</code> is the final call a service makes
+prior to exiting. This call is typically made in response to a
+<code>false</code> return from <code>getRequest()</code>.  Subsequent
+calls to any other pluton::service methods fail.
+
+<p>While it's not essential to call <code>terminate()</code> (and
+clearly it cannot be enforced), the final status report provides
+the <code>plutonManager</code> with the most accurate statistics on
+the performance of this service so you are encouraged to make this
+call.
+
+<p>While the <code>pluton::service</code> destructor also calls
+<code>terminate()</code>, a common programming model for a service -
+such as in the example at the top of this page - has the
+<code>pluton::service</code> object in the <code>main()</code> stack
+space which means that the destructor is never run if the program uses
+<code>exit()</code> rather than <code>return()</code> to exit out of
+<code>main()</code>.
+
+<p>If you are in the habit of using <code>return()</code> to exit out
+of main, then a call to <code>pluton::service::terminate()</code> is
+superfluous, but still recommended.
+
+
+<h3><a name=serviceExchange>pluton::service Request Exchange Methods</h3>
+
+The <code>pluton::service</code> provide methods to exchange requests
+with clients and determine causes of failure.
+
+<h4><a name=getRequest>pluton::service::getRequest()</h4>
+
+A call to <code>getRequest()</code> fetches the request sent to that
+service and stores it in an internal request
+structure. <code>getRequest()</code> waits indefinitely for the next
+request unless terminated by the plutonManager.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/service.h&gt;
+
+    pluton::service S;
+
+    bool S.getRequest();
+</pre>
+
+<h5>RETURN VALUE</h5>
+
+The boolean returned is <code>true</code> if a request has been
+successfully accepted, otherwise <code>false</code> is returned to
+indicate that no request is available and the service should terminate
+with a call to <code>terminate()</code> then a call to
+<code>std::exit()</code>.
+
+<p>A <code>false</code> return does not necessarily indicate an error,
+rather it can be as a result of the plutonManager deciding to shut
+down this service instance. No attempt should be made to recover from
+a <code>false</code> return. To determine whether the
+<code>false</code> return is due to an error, the <code>error()</code>
+method should be called.
+
+<h4><a name=sendResponse>pluton::service::sendResponse()</h4>
+
+The <code>sendResponse()</code> method is used to send the response to
+a request previously obtained from the <code>getRequest()</code>
+method. <code>sendResponse()</code> is used when the request has been
+processed successfully by the service, otherwise
+<code>sendFault()</code> should be called instead.
+
+<p>
+<code>sendResponse()</code> can only be called after a successful
+return from <code>getRequest()</code>.
+
+<p>For efficiency and data-independence reasons, the first method is the
+preferred method.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/service.h&gt;
+
+    pluton::service S;
+
+    bool S.sendResponse(const char* responsePointer, int responseLength); // Can be binary content
+</pre>
+or
+<pre>
+    bool S.sendResponse(const char* responsePointer);		// Expects a C-string
+</pre>
+and
+<pre>
+    #include &lt;string&gt;
+    bool S.sendResponse(const std::string& responseData);	// Can be binary content
+</pre>
+
+<h5>PARAMETERS</h5>
+<table border=1>
+<tr><th>Name<th>Description</tr>
+
+<tr valign=top><td>responsePointer<td>A pointer to the response data.
+
+<p>When using the method with a <code>responseLength</code> parameter,
+there are no constraints on the content of data. If the data is text,
+it probably should be encoded in UTF-8 or similar but it also may be
+binary data. The type of data is however, entirely a function of the
+agreed-upon serialization between the client and service.
+
+<p>When using the method <em>without</em> a
+<code>responseLength</code> parameter, the library assumes a \0
+terminated C-string amenable to <code>strlen()</code>.  </tr>
+
+<tr valign=top><td>responseLength<td>The number of bytes in the response.</tr>
+
+<tr valign=top><td>responseData<td>A convenience interface: the response is
+constructed from the contents of the supplied std::string</tr>
+
+</table>
+
+<h5>RETURN VALUE</h5>
+
+The boolean returned is <code>true</code> if the response has been
+successfully sent, otherwise <code>false</code> is returned to
+indicate failure and <code>getFault()</code> can be call to get a
+description of the failure. A service should terminate on a failure to
+send a response.
+
+<h4><a name=sendFault>pluton::service::sendFault()</h4>
+
+The <code>sendFault()</code> method is used to tell the client the
+request is <em>faulty</em> and could not be processed. Faults are
+typically things like the request failed to de-serialize or that a
+particular function is not supported. In general, a fault should be
+used as a basis for stating that the request is not understood by the
+service.
+<p>
+Ultimately it is the responsibility of the service definition to
+clearly state under what conditions it sends faults rather than
+responses. If a fault is returned to a caller, the service API and
+client API will release resources associated with the request. This is
+particularly relevant to <code>affinity</code> connections as those
+connections are closed when a fault is returned.
+
+<p>The plutonManager separately records faults sent by services and
+they are logged along with other service statistics.
+
+<p>
+<code>sendFault()</code> can only be called after a successful return
+from <code>getRequest()</code> and as an alternative to
+<code>sendResponse()</code>.
+
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/service.h&gt;
+
+    pluton::service S;
+
+    bool S.sendFault(unsigned int faultCode, const char* faultText);
+</pre>
+
+<h5>PARAMETERS</h5>
+<table border=1>
+<tr><th>Name<th>Description</tr>
+
+<tr valign=top><td>faultCode<td>A positive integer indicating the nature of the
+fault.
+
+<p>Clients expect both positive and negative fault codes, however
+negative fault codes are reserved for system faults as are the first
+10 positive fault codes. These reserved codes are defined in the
+&lt;pluton/fault.h&gt; include file.</tr>
+
+<tr valign=top><td>faultText<td>A brief descriptive text that can be usefully
+logged by the client. This text is not intended for user consumption
+and should be constrained to be ASCII text. The definition is
+purposely a C-string rather than, say, std::string to highlight the
+constrained nature and expectation of this parameter.</tr>
+
+</table>
+
+<h5>PREDEFINED FAULT CODES</h5>
+
+
+<table border=1>
+
+<tr><th>Code<th>Meaning</tr>
+<tr valign=top><td>0<td>No Fault</tr>
+<tr valign=top><td>1<td>De-serialization Failed</tr>
+<tr valign=top><td>2<td>Unknown Function</tr>
+<tr valign=top><td>3<td>Request too large</tr>
+<tr valign=top><td>4<td>Could not connect to remote host</tr>
+<tr valign=top><td>5<td>Write to remote socket failed mid-stream</tr>
+
+</table>
+
+<h5>RETURN VALUE</h5>
+
+The boolean returned is <code>true</code> if the fault has been
+successfully sent, otherwise <code>false</code> is returned to
+indicate failure and <code>getFault()</code> can be call to get a
+description of the failure. A service should terminate on a failure to
+send a fault and it should not make any attempt to recover.
+
+
+<h4><a name=hasFault>pluton::service::hasFault()</h4>
+
+This method indicates that the <code>pluton::service</code> object has
+a <a href=fault.html><code>pluton::fault</code></a> object available
+with a fault condition from the previous call to
+<code>pluton::service</code>.
+
+<p>
+If a fault is indicated, a service should call
+<code>terminate()</code> and exit as subsequent calls to all get
+subsequent requests will fail.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/client.h&gt;
+
+    pluton::service S;
+
+    bool S.hasFault();
+</pre>
+
+<h5>RETURN VALUE</h5>
+
+Return <code>true</code> if there is a
+<a href=fault.html><code>pluton::fault</code></a>
+object available
+with fault data associated with the last call made to
+<code>pluton::service</code>.
+
+<p>
+Return <code>false</code> if the last call to
+<code>pluton::service</code> did not have a fault.
+<p>
+
+<h4><a name=getFault>pluton::service::getFault()</h4>
+
+In the interest of maximizing the amount of diagnostic information
+available, the <code>pluton::service</code> provides access to a
+<a href=fault.html><code>pluton::fault</code></a>
+instance which contains extensive
+information relating to a call that returned a fault indication.
+
+<p>
+Whenever a <code>pluton::service</code> method indicates a failure, a
+caller can access the
+
+<a href=fault.html><code>pluton::fault</code></a> instance to gain
+access to details of the reason for the failure. The
+
+<a href=fault.html><code>pluton::fault</code></a>
+
+object is valid if indicated by
+
+<a href=#clientHasFault><code>pluton::service::hasFault()</code></a>.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/client.h&gt;
+
+    pluton::service S;
+
+    <a href=fault.html>pluton::fault</a>& S.getFault();
+</pre>
+<h5>RETURN VALUE</h5>
+
+Return a C++ reference to a
+<a href=fault.html><code>pluton::fault</code></a>
+instance corresponding to this <code>pluton::service</code></a>.
+<p>
+
+
+<h3><a name=serviceRequest>pluton::service Request Access Methods</h3>
+
+The <code>pluton::service</code> Request Access methods are used to access
+request parameters.  These methods must <b>only</b> be called after a
+successful call to <code>pluton::service::getRequest()</code> and
+prior to <code>pluton::service::sendResponse()</code>. If these
+methods are called at any other time, the results are guaranteed to be
+undefined.
+
+<p>All calls apply to the last request obtained by
+<code>service::getRequest()</code>.
+
+
+<h4><a name=getServiceKey>pluton::service::getServiceKey()</h4>
+
+Return the Service Key used to invoke this service. A service does not
+normally need to make this call.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;string&gt;
+    #include &lt;pluton/service.h&gt;
+
+    pluton::service S;
+
+    const std::string& S.getServiceKey(std::string& key);
+</pre>
+
+<h5>PARAMETERS</h5>
+
+<table border=1>
+<tr><th>Name<th>Description</tr>
+<tr valign=top><td>key<td>The Service Key is returned in this string</tr>
+</table>
+
+<h5>RETURN VALUE</h5>
+
+As a convenience, a const reference to the <code>key</code> parameter
+is returned to the caller.
+
+<h4><a name=getServiceApplication>pluton::service::getServiceApplication()</h4>
+
+Return the Application component of the Service Key used to invoke
+this service. A service does not normally need to make this call.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;string&gt;
+    #include &lt;pluton/service.h&gt;
+
+    pluton::service S;
+
+    const std::string& S.getServiceApplication(std::string& application);
+</pre>
+
+<h5>PARAMETERS</h5>
+
+<table border=1>
+<tr><th>Name<th>Description</tr>
+<tr valign=top><td>application<td>The Application component is returned in this string</tr>
+</table>
+
+<h5>RETURN VALUE</h5>
+
+As a convenience, a const reference to the <code>application</code> parameter
+is returned to the caller.
+
+
+<h4><a name=getServiceFunction>pluton::service::getServiceFunction()</h4>
+
+Return the Function component of the Service Key used to invoke this
+service. This call is used by a service if it handles multiple
+functions and is configured as a wild-card entry, otherwise a service
+does not normally need to make this call.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;string&gt;
+    #include &lt;pluton/service.h&gt;
+
+    pluton::service S;
+
+    const std::string& S.getServiceFunction(std::string& function);
+</pre>
+
+<h5>PARAMETERS</h5>
+
+<table border=1>
+<tr><th>Name<th>Description</tr>
+<tr valign=top><td>function<td>The Function component is returned in this string</tr>
+</table>
+
+<h5>RETURN VALUE</h5>
+
+As a convenience, a const reference to the <code>function</code> parameter
+is returned to the caller.
+
+
+<h4><a name=getServiceVersion>pluton::service::getServiceVersion()</h4>
+
+Return the Version component of the Service Key used to invoke this
+service. A service does not normally need to make this call unless it
+expects to be configured to run with multiple versions and it needs to
+version to disambiguation the request.
+
+<p>Generally speaking version changes should only occur when the
+serialization does not support sufficient version flexibility.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/service.h&gt;
+    #include &lt;pluton/service.h&gt;
+
+    pluton::service S;
+
+    unsigned int S.getServiceVersion();
+</pre>
+
+<h5>PARAMETERS</h5>
+
+<table border=1>
+<tr><th>Name<th>Description</tr>
+<tr valign=top><td>version<td>The Version component is the returned value</tr>
+</table>
+
+
+<h4><a name=getSerializationType>pluton::service::getSerializationType()</h4>
+
+Return the SerializationType component of the Service Key used to invoke
+this service.
+
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/service.h&gt;
+    #include &lt;pluton/service.h&gt;
+
+    pluton::service S;
+
+    pluton::serializationType S.getSerializationType();
+
+</pre>
+
+<h5>PARAMETERS</h5>
+
+<table border=1>
+<tr><th>Name<th>Description</tr>
+<tr valign=top><td>type<td>The SerializationType is the returned value</tr>
+</table>
+
+
+<h4><a name=getClientName>pluton::service::getClientName()</h4>
+
+Return the name of the client making the service request. The client
+name set set by the client when it calls
+<code>pluton::client::initialize()</code>. A service does not normally
+need to make this call.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;string&gt;
+    #include &lt;pluton/service.h&gt;
+
+    pluton::service S;
+
+    const std::string& S.getClientName(std::string& name);
+</pre>
+
+<h5>PARAMETERS</h5>
+
+<table border=1>
+<tr><th>Name<th>Description</tr>
+<tr valign=top><td>name<td>The client name is returned in this string</tr>
+</table>
+
+<h5>RETURN VALUE</h5>
+
+As a convenience, a const reference to the <code>name</code> parameter
+is returned to the caller.
+
+
+<h4><a name=getRequestData>pluton::service::getRequestData()</h4>
+
+Return access parameters to the request data sent by the
+client. Request data is unadulterated and unchecked by the Pluton
+Framework. Validating the request data - including checking for
+legitimate serialization - is entirely a matter for the service.
+<p>
+There is no practical constraint on the size of a request, the
+ultimate limit is that imposed on the process by the system.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/service.h&gt;
+
+    pluton::service S;
+
+    void S.getRequestData(const char*& requestPointer, int& requestLength);
+
+    const std::string& S.getRequestData(std::string& requestData);
+</pre>
+
+<h5>PARAMETERS</h5>
+
+<table border=1>
+<tr><th>Name<th>Description</tr>
+
+<tr valign=top><td>requestPointer<td>A pointer to the request data. This pointer
+points to an internal <code>pluton::service</code> data structure.
+<p>There are no constraints on the content of this data. Preferably it
+is UTF-8, but at the very least you can expect that it may contain
+binary data and should program accordingly.</tr>
+
+<tr valign=top><td>requestLength<td>The number of bytes in the request</tr>
+
+<tr valign=top><td>requestData<td>A convenience interface: the request data is
+copied into this std::string which protects the caller from the
+ephemeral nature of <code>requestPointer</code></tr>
+
+</table>
+
+<h5>RETURN VALUE</h5>
+
+As a convenience, a const reference to the <code>requestData</code> parameter
+is returned to the caller when invoked with a <code>std::string</code> parameter.
+
+<H5>DESCRIPTION</h5>
+
+The first, and preferred version of <code>getRequestData()</code>
+returns access parameters to the request data sent by the client. In
+the interest of minimizing the number of data copies - particularly
+for large requests - this interface lets the caller decide whether to
+copy the request into a std::string or some other structure of the
+caller's choosing.
+
+<p>
+If you are enamored with the convenience of <code>std::string</code>,
+the second version of <code>getRequestData()</code> copies the request
+data into the provided <code>std::string</code>.
+
+<p>
+While the second version may prove convenient, you may find that such
+copies are often not necessary as the caller can safely refer to the
+request data for the life of the request.
+
+<p><b>NOTE WELL:</b> the access parameters are <i>only</i> valid up
+until the next call to a
+<code>pluton::service::getRequest()</code>. If you have any
+doubt about the flow of your program, the std::string interface should
+be preferred as being much more resilient, albeit slower due to the
+data copy.
+
+<h4><a name=getContext>pluton::service::getContext()</h4>
+
+While the format of request and response data is completely unknown to
+the Pluton Framework - much as a shell is oblivious to the content
+passed through pipes it creates - <code>context</code> <i>is</i> known
+to the Pluton Framework and is akin to environment variables in the
+shell.
+
+<p><code>getContext()</code> on the service side and
+<code>setContext()</code> on the client side are almost identical in
+syntax and semantics to the C-library functions <code>getenv()</code>
+and <code>setenv()</code> respectively. In essence, the
+<code>context</code> methods manage a set of name/value pairs that are
+expected to be common across all serialization types.
+
+<p>The context name-space is not currently defined with the exception
+that names beginning with "pluton." are reserved and cannot be set by
+clients. It is expected that early adopters will help define the
+name-space as necessary.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/service.h&gt;
+
+    pluton::service S;
+
+    bool S.getContext(const char* key, std::string& value);
+</pre>
+
+<h5>PARAMETERS</h5>
+
+<table border=1>
+<tr><th>Name<th>Description</tr>
+
+<tr valign=top><td>key<td>The name of the context to get. This is a \0 terminated
+C-string and should be constrained to ASCII.</tr>
+
+<tr valign=top><td>value<td>If present, the value associated with the name is
+returned in this std::string.</tr>
+
+</table>
+
+<h5>RETURN VALUE</h5>
+
+Returns <code>true</code> if the context name is present, otherwise
+<code>false</code> is returned. <code>value</code> is only defined
+when <code>true</code> is returned.
+
+<h4><a name=hasFault>pluton::service::hasFault()</h4>
+
+This method indicates that the <code>pluton::service</code> object has
+a <a href=fault.html><code>pluton::fault</code></a> object available
+with a fault condition from the previous call to
+<code>pluton::service</code>.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/service.h&gt;
+
+    pluton::service S;
+
+    bool S.hasFault();
+</pre>
+
+<h5>RETURN VALUE</h5>
+
+Return <code>true</code> if there is a
+<a href=fault.html><code>pluton::fault</code></a>
+object available
+with fault data associated with the last call made to
+<code>pluton::service</code>.
+
+<p>
+Return <code>false</code> if the last call to
+<code>pluton::service</code> did not have a fault.
+<p>
+
+<h4><a name=serviceGetFault>pluton::service::getFault()</h4>
+
+In the interest of maximizing the amount of diagnostic information
+available, the <code>pluton::service</code> provides access to a
+<a href=fault.html><code>pluton::fault</code></a>
+instance which contains extensive
+information relating to a call that returned a fault indication.
+
+<p>
+Whenever a <code>pluton::service</code> method indicates a failure, a
+caller can access the
+<a href=fault.html><code>pluton::fault</code></a>
+instance to gain
+access to details of the reason for the failure. The
+<a href=fault.html><code>pluton::fault</code></a>
+object is valid if indicated by
+<a href=#hasFault><code>pluton::service::hasFault()</code></a>.
+
+<h5>SYNOPSIS</h5>
+
+<pre>
+    #include &lt;pluton/service.h&gt;
+
+    pluton::service S;
+
+    <a href=fault.html>pluton::fault</a>& F = S.getFault();
+</pre>
+<h5>RETURN VALUE</h5>
+
+Return a C++ reference to a
+<a href=fault.html><code>pluton::fault</code></a>
+instance corresponding to this <code>pluton::service</code></a>.
+<p>
+
+<h4><a name=exitCodes>Reserved exit() codes</h4>
+
+The following exit codes communicate the reason why a service has not
+started properly. Avoiding these exit codes enhances the value of the
+log entries created by the <code>plutonManager</code>. The reason for
+using exit codes in this context is because the errors occur after the
+fork() of the service instance but prior to the exec() which is a
+situation where communication between a parent and a child is pretty
+easy with a non-zero exit code.
+
+<p>Excepting exit codes 13 & 14, these exit codes are indicative of a
+pretty serious underlying problem that are not expected to occur and
+that normally require human intervention to correct.
+
+<p>It is
+recommended that a service adopt the usual Unix convention of exiting
+with zero if all is well or exiting with one to indicate an error that
+is likely to require human intervention to correct.
+
+<p>
+<table border=1>
+<tr><th>Exit Code<th>Meaning</tr>
+
+<tr valign=top><td>11<td>calloc() of argv[] failed</tr>
+<tr valign=top><td>12<td>Parse of exec command line failed</tr>
+<tr valign=top><td>13<td>execv() failed</tr>
+<tr valign=top><td>14<td>chdir failed</tr>
+<tr valign=top><td>15<td>Reserved</tr>
+<tr valign=top><td>16<td>dup2 of STDERR failed</tr>
+<tr valign=top><td>17<td>dup2 of acceptSocket failed</tr>
+<tr valign=top><td>18<td>fcntl(acceptSocket, NON_BLOCK) failed</tr>
+<tr valign=top><td>19<td>dup2 of shmFD failed</tr>
+<tr valign=top><td>20<td>dup2 of reportingSocket failed</tr>
+<tr valign=top><td>21<td>Could not open /dev/null to STDIN</tr>
+<tr valign=top><td>22<td>Could not open /dev/null to STDOUT</tr>
+<tr valign=top><td>23<td>Reserved</tr>
+<tr valign=top><td>24<td>Reserved</tr>
+<tr valign=top><td>25<td>Reserved</tr>
+<tr valign=top><td>26<td>Reserved</tr>
+<tr valign=top><td>27<td>Reserved</tr>
+<tr valign=top><td>28<td>Reserved</tr>
+<tr valign=top><td>29<td>Reserved</tr>
+<tr valign=top><td>30<td>Reserved</tr>
+
+</table>
+
+<p>
+<hr>
+<font size=-1>
+$Id: serviceAPI.html 263389 2009-11-30 21:32:36Z markd $
+&copy; Copyright Yahoo! Inc, 2007, 2008, 2009
+</font>
+</body>
+</html>

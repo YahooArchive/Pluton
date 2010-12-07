@@ -1,0 +1,2 @@
+ulimit-cpu-milliseconds	0		# per request amortized across maximumRequests
+exec /bin/echo

@@ -1,0 +1,159 @@
+<html>
+<head>
+<link rel="shortcut icon" href=images/pluto-symbol.jpg type="image/x-icon" />
+<title>
+The Pluton Framework: Serialization Types
+</title>
+</head>
+
+<body>
+
+<center>
+<a href=index.html>
+<img height=100 src=images/pluto-charon.jpg ALT="[Pluto Charon Image]">
+</a>
+</center>
+
+<h2 align=center>The Pluton Framework: Serialization</h2>
+
+There are two aspects to serialization that need to be considered when
+creating a new service. The character-set encoding and the data
+serialization format. The serialization format is explicitly
+advertised as part of the service key whereas the character-set
+encoding is implicit.
+
+<h3>Character-set encoding</h3>
+
+The Pluton Framework makes no assumptions about serialization, nor
+does it examine the exchanged data to verified or check
+serialization. This means you <i>could</i> use any sort of funky
+character-set and serialization format you want to and it will work so
+long as the service and client agree and are capable of accepting the
+data (some language interfaces have functional constraints).
+
+<p>The problem of course is that a funky choice limits
+ interoperability and re-use. For that reason, it is <u><strong>strongly
+ recommended that you only every use UTF-8</strong></u> as your character encoding
+ for all text based serialization types. This should also apply as
+ much as possible to the <code>raw</code> type.
+
+
+<h3>Serialization Format</h3>
+
+The serialization format of the request and response is encoded in the
+Service Key. Service Keys are the mechanism by which clients address a
+service. The format of a Service Key is a dot separated set of
+components, ie:
+
+<pre>
+	<a href=serviceKey.html>Application.Function.Version.Serialization</a>
+</pre>
+
+<p>
+<code>serialization</code> is case sensitive and defines the
+particular convention used to exchange
+requests. <code>serialization</code> is merely a convention because
+conformance is not checked by any part of the Pluton Framework. Any
+checking is typically performed by application code on either side of
+the exchange.
+
+<p>The design decision to abdicate from serialization checking in the
+  Pluton Framework is a
+pragmatic one as it most likely duplicates work that has to be done in
+clients and services anyway; particularly de-serializing to construct a
+data structure. Furthermore, the degree of checking and the severity
+of response is likely to vary between applications. Finally,
+serialization is just one of many checks a service will want to make
+on a request, having the Pluton Framework perform some of those
+checks merely blurs the lines of responsibility without much gain.
+
+<p>In summary, the Pluton Framework focuses on solving service
+discovery, data exchange and parallel processing and leaves content
+processing to higher layers.
+
+<p>
+A complete request consists of a client sending Context Variables and
+requestData and the service responding with responseData and fault
+information. Context Variables and fault information are both
+independent of <code>serialization</code>; <code>serialization</code>
+only applies to requestData and responseData.
+
+<p>This table defines the valid serialization types and typically
+start and end data patterns.
+
+<p>
+<table border=1>
+<tr><th align=left>Serialization<th align=left>Description<th
+align=left>Specification<th>Encoding
+<th>Typically, data starts with this...<th>...and ends with</tr>
+
+<tr><td>COBOL<td>COmmon Business Oriented Language
+<td><a href=http://www.cobolstandards.com/>www.cobolstandards.com</a>
+<td>UTF-8
+<td align=center>??<td align=center>??
+</tr>
+
+<tr><td>HTML<td>HyperText Markup Language
+<td><a href=http://www.w3.org/TR/html4/>www.w3.org/TR/html4</a>
+<td>UTF-8
+<td align=center>&lt;html&gt;<td align=center>&lt;/html&gt;
+</tr>
+
+<tr><td>JMS<td>Java Messaging Service
+<td><a
+href=http://java.sun.com/products/jms/>java.sun.com/products/jms</a>
+<td>??
+<td align=center>??<td align=center>??
+</tr>
+
+<tr><td>JSON<td>JavaScript Object Notation
+<td><a href=http://www.json.org>www.json.org</a>
+<td>UTF-8
+<td align=center>{<td align=center>}
+</tr>
+
+<tr><td>NETSTRING<td>DJB high-performance, light-weight netstrings
+<td><a href=http://cr.yp.to/proto/netstrings.txt>cr.yp.to/proto/netstrings.txt</a>
+<td>Preferably UTF-8
+<td align=center>123:<td align=center>,
+</tr>
+
+<tr><td>PHP<td>PHP Serialization
+<td><a href=http://www.php.net/serialize>www.php.net/serialize</a>
+<td>UTF-8
+<td align=center>[php<td align=center>]
+<tr>
+
+<tr><td>SOAP<td>Simple Object Access Protocol
+<td><a href=http://www.w3.org/TR/soap/>www.w3.org/TR/soap</a>
+<td>UTF-8
+<td align=center><td align=center>
+</tr>
+
+<tr><td>XML<td>eXtensible Markup Language
+<td><a href=http://www.w3.org/TR/xml/>www.w3.org/TR/xml</a>
+<td>UTF-8
+<td align=center>&lt;?xml version=<td align=center>&gt;
+</tr>
+
+<tr><td>raw<td>any soRt of dAta Works<td>/dev/null
+<td>Preferably UTF-8
+<td align=center><i>undefined</i><td align=center><i>undefined</i>
+</tr>
+
+</table>
+
+<p>
+Serialization merely scratches the surface of an interface to a
+service. A well documented service will define the semantics of the
+serialized data as well any expected Context Variables and the types
+of faults it can generate.
+
+<p>
+<hr>
+<font size=-1>
+$Id: serialization.html 263341 2009-11-26 17:35:13Z markd $
+&copy; Copyright Yahoo! Inc, 2007, 2008, 2009
+</font>
+</body>
+</html>

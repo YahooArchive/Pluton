@@ -1,0 +1,3 @@
+exec platform-services/echo
+recorder-prefix	./data/limit.
+recorder-cycle	3

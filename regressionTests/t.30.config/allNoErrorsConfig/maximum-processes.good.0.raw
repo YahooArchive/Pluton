@@ -1,0 +1,2 @@
+maximum-processes	10
+exec /bin/echo

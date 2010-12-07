@@ -1,0 +1,609 @@
+<html>
+<head>
+<link rel="shortcut icon" href=images/pluto-symbol.jpg type="image/x-icon" />
+<title>
+The Pluton Framework: Background
+</title>
+</head>
+
+<body>
+
+<center>
+<a href=index.html>
+<img height=100 src=images/pluto-charon.jpg ALT="[Pluto Charon Image]">
+</a>
+</center>
+
+<h2 align=center>The Pluton Framework: Background and Motivation</h2>
+
+<p>
+<ul>
+<li><a href=#Introduction>Introduction</a>
+<ul>
+<li><a href=#networkEffectProblem>Network Effect Problem</a>
+<li><a href=#latencyProblem>The Latency Problem</a>
+<li><a href=#weakestLinkProblem>The Weakest Link Problem</a>
+<li><a href=#additionalProblems>Additional Problems</a>
+</ul>
+
+<li><a href=#Architecture>Architecture Overview</a>
+<ul>
+<li><a href=#plutonManager>The plutonManager</a>
+<li><a href=#Services>Services</a>
+<li><a href=#Clients>Clients</a>
+<li><a href=#Rendezvous>Rendezvous Sockets</a>
+<li><a href=#Lookup>Service Naming, Service Keys and Lookup Table</a>
+<li><a href=#Reporting>Reporting Sockets</a>
+</ul>
+
+<li><a href=#Together>Putting it all together</a>
+<li><a href=#Serialization>Application Serialization</a>
+<li><a href=#Benefits>Benefits</a>
+<li><a href=#Performance>Performance</a>
+</ul>
+
+<a name=Introduction>
+<h3>Introduction</h3>
+</a>
+
+Pluton is a framework which can help make web applications
+light-weight, easy to debug, faster <em>and</em> potentially less
+resource intensive.
+
+<p>
+A number of conspiring factors have resulted in many web applications
+becoming large, unwieldy, brittle and slow. These factors include the
+network effect problem, the latency problem and the weakest link
+problem.
+
+The primary goal of the Pluton Framework is to make it possible to
+replace these large, brittle web applications with smaller, flexible
+applications which use co-operative, independent services.
+
+
+<h4><a name=networkEffectProblem>The Network Effect Problem</h4>
+
+A key feature of modern web applications is that they combine data
+from numerous sources to render a rich experience. One meaning of
+<em>network effect</em> is to take advantage of a related set of
+content sources to provide a more comprehensive experience.
+
+Consider a calendar application which might consult multiple calendars
+to present an aggregate view; or an address book application which
+might want to include online presence indication; or a portal-type
+page which might render calendar status, online presence, ads, local
+weather and news headlines.
+
+<p>
+From a user perspective, combining different data sources provides a
+richer experience, but it comes at a significant increase in
+application complexity which implies more code, a bigger footprint and
+many more library dependencies.
+
+<p>
+By dividing the application into smaller, self-contained services, the
+complexity is substantially reduced as each service can be tested,
+debugged and tuned independently of each other and the main application.
+
+
+<h4><a name=latencyProblem>The Latency Problem</a></h4>
+
+Feature rich web applications often collect data from a variety of
+external data sources. Typically, access to these data sources
+involves a series of comparatively high-latency network requests which
+in aggregate can add up to a lot of user-visible delay. Consider just
+five remote data sources at 30ms each? This adds up to a distinctly
+visible 150ms of delay.
+
+<p>
+The Pluton Framework provides an easy and safe way to issue multiple
+requests in parallel such that the aggregate latency is reduced to the
+duration of the slowest request, not the sum of all requests. Within
+the Pluton Framework, those five remote requests could potentially all
+complete within an aggregate latency of just 30ms.
+
+
+<h4><a name=weakestLinkProblem>The Weakest Link Problem</a></h4>
+
+A large monolithic web application typically includes many independent
+libraries. If any one of those libraries has a memory corruption bug,
+a resource leak or a performance problem, it affects the whole
+application. Sometimes catastrophically such as randomly dumping core
+or getting stuck in some CPU loop.
+
+<p>
+If an application includes, say, ten libraries (a very small number by
+current standards), then you only need one bug in one of those ten
+libraries to cause the application to fail. Essentially, each
+additional library increases the probability of an application failure
+through no fault of the application program. To make matters worse,
+even if the current set of libraries happen to be bug-free, some
+future version may not be as well behaved, causing a previously stable
+and unchanged application to mysteriously start failing.
+
+<p>
+By encapsulating separate functions in self-contained execution
+units, bugs are contained within the encapsulated executable which protects
+the main application and makes it much easier to isolate the location
+of the fault.
+
+
+<h4><a name=additionalProblems>Additional Problems</a></h4>
+
+Above and beyond the main problems identified above, there are
+numerous, well-known disadvantages to monolithic web applications. These
+include:
+
+<ul>
+<li>Difficult performance analysis - time consuming instrumentation is
+often required to find a slow piece of functionality
+<li>Unwieldy core dumps - large executables create large core files
+<li>Difficult to debug - the inclusion of debugging symbols is outside of
+your control
+<li>Difficult to regression test - each API requires a separate and
+different regression test program
+<li>Difficult to isolate unexpected changes in behavior
+<li>Library version conflicts increases exponentially with the number
+of libraries
+</ul>
+
+Many of these difficulties are substantially reduced in the Pluton Framework.
+
+<a name=Architecture>
+<h3>Architecture Overview</h3>
+</a>
+
+The Pluton Framework consists of:
+
+<ol>
+<li>a <a href=configuration.html>configured</a> set of self-contained,
+stand-alone service executables which accept requests and send
+responses
+
+<li>the <a href=plutonManager.html>plutonManager</a> - a long-running
+daemon which manages service instances and their rendezvous sockets
+
+<li>a simple <a href=clientAPI.html>client API</a> to
+issue service requests in parallel
+
+<li>a simple <a href=serviceAPI.html>service API</a> to connect
+service programs to their corresponding rendezvous socket
+
+<li>a file-system based naming convention for service discovery
+</ol>
+
+<p>
+The following diagram shows the relationship between the major
+components and an application.
+<p>
+<center>
+<a href=images/plutonOverview1.jpg>
+<img border=1 height=400 src="images/plutonOverview1.jpg" ALT="[Overview 1]">
+</a>
+<p><font size=-1>(Click on image for a larger version).</font>
+</center>
+<p>
+Admittedly, this diagram suggests a complex set of interactions,
+however these are largely required for management functions, the
+interaction between the client and services is very simple with all
+management functions completely contained within the APIs.
+
+
+<h4><a name=plutonManager>The plutonManager</a></h4>
+
+The plutonManager is a long-running daemon which is responsible for
+managing all of the components except the client applications. For each
+configured service, the plutonManager:
+
+<ul>
+<li>creates the service Rendezvous Socket
+<li>adds a "Service Key to Rendezvous Socket" entry in the shared
+memory Lookup Table
+<li>creates the service Reporting Socket
+<li>forks and execs the service instances
+<li>monitors and logs performances statistics automatically generated
+by each service instance
+</ul>
+
+The plutonManager dynamically adjusts the number of service instances
+based on configuration limits, application demand and a number of
+performance factors. The competing goals are to provide sufficient service
+instances to maximize request concurrency while minimizing excess
+capacity and system impact.
+
+<p>One of the most important roles of the plutonManager is to generate
+a consistent set of performance log entries which can be used to analyze
+service performance over time. The log entries include:
+
+<ul>
+<li>Average elapse-time per request
+<li>Total Memory size on exit
+<li>Total CPU used on exit
+<li>Total number of successful requests
+<li>Total number of fault requests
+<li>A short list of the slowest elapse times
+</ul>
+
+This information is purposely amenable to parsing and storage in a
+database which can then be used to trend the performance of a service
+over time and over new releases.
+
+
+<h4><a name=Services>Services</a></h4>
+
+Services are stand-alone executable programs written for the
+framework. Services use the <a href=serviceAPI.html>service API</a> to
+accept requests and send responses. A service program is largely
+oblivious to the fact that it is running within this framework.
+
+<p>
+All services are implemented as a loop. Here is a skeletal "Hello
+World" service which demonstrates this loop:
+<p>
+
+<center>
+<table border=1>
+<td>
+<pre>
+ #include &lt;pluton/service.h&gt;
+
+ int
+ main(int argc, char** argv)
+ {
+     pluton::service	     S;
+     pluton::serviceRequest  R;
+
+     S.initialize();
+
+     while (S.getRequest(R)) {
+         S.sendResponse("Hello Worlds, all eight of you!");
+     }
+
+     S.terminate();
+
+     return(0);
+ }
+</pre>
+</table>
+</center>
+
+<p>
+If you want to be lazy about checking for errors, this is literally
+all the code you need to create a service. Oh, and obviously you'll
+need some code which actually does something useful, but that's your
+problem...
+
+<p>
+Some basic attributes of service programs:
+
+<ul>
+
+<li>Connections to databases or remote services should be established
+just once and prior to calling
+<code>pluton::service::initialize()</code>. Henceforth, if any error
+occurs, a service program should simply exit. The manager is
+responsible for re-starting a new instance.
+
+<p><li>Services are expected to perpetually iterate on the
+<code>getRequest()</code> method to amortize their creation and initialized costs
+across many requests. Normally the decision to exit is made by the
+plutonManager and service API. This decision is indicated to the
+service via a false return from <code>getRequest()</code>.
+
+
+<p><li>Services should not overly concern themselves with managing
+timeouts to meet client response-time requirements. The client API
+manages this aspect of the exchange.
+
+<p><li>Services should be written as single-threaded, serial request
+processors. All parallelism is achieved by multiple instances of a
+service.
+
+</ul>
+
+Generally speaking, service programs should be simple and perform just
+one function or a set of common functions.
+
+
+<h4><a name=Clients>Clients</a></h4>
+
+Clients use the <a href=clientAPI.html>client API</a> to exchange
+requests with services. A key feature of the client API is that
+multiple service requests can be issued concurrently which greatly
+reduces aggregate latency. In fact multiple requests to the same
+service can similarly be issued in parallel - then all such requests
+are processed in parallel within the constraint of available services
+and system resources.
+
+<p>
+Unlike services, the Pluton Framework does not imply an implementation
+model for clients. This is <em>the</em> area where the programmer need
+to be creative; they should think about which functions can be
+encapsulated as a service and they should think about which services
+can be requested in parallel by the application.
+
+Generally speaking,
+a well designed client is one which maximizes the benefits of the
+Pluton Framework.
+
+<p>
+For those interest, <a href=sampleClient.html>here</a> is a sample
+client program intended to give an idea of how the client API can be
+used - it does not represent the archetypal client. The most salient
+point to note is that the sample client makes two service requests in
+parallel it then waits for all requests to complete. Other
+<code>pluton::client</code> methods allow waiting for one, any or no
+requests to complete prior to returning to the caller.
+
+
+<h4><a name=Rendezvous>Rendezvous Sockets</a></h4>
+
+Each service exchanges requests via a unique Unix Domain socket -
+called a Rendezvous Socket in pluton parlance.
+
+<p>
+The client API discovers the path to the Rendezvous Socket via the
+Lookup Table and connects to that socket to exchange the request. The
+plutonManager is responsible for managing the existence of Rendezvous
+Sockets but is not involved in the actual exchange of data.
+
+<p>
+Rendezvous Sockets are transparent to clients and
+services - at least for the reason that  they conceivably may be replaced with a more efficient
+message-passing system - should one somehow spring into existence.
+
+
+<h4><a name=Lookup>Service Naming and Lookup Table</a></h4>
+
+Clients gain access to a service by their Service Key. The Lookup
+Table is a shared-memory structure which maps Service Keys to
+the path of Rendezvous Sockets. At the time of writing, the exact syntax of
+Service Keys is still under discussion, but the current thinking is
+along the lines of a dot separated set of tokens as follows:
+
+<pre>
+	<a href=serviceKey.html>Application.Function.Version.Serialization</a>
+</pre>
+
+where <code>Function</code> can be empty to indicate a wild-card. The
+Lookup Table provides an efficient means of resolving wild-card
+lookups. Example Service Keys are:
+
+<pre>
+	Mail.GetFolderList.1.XML
+or
+	AddressBook.AddEntry.0.JSON
+</pre>
+
+If a service is configured as a wild-card, it is only used
+if a more specific Service Key does not exist. For example, if two
+services are configured as:
+
+<pre>
+	AddressBook..0.JSON
+and
+
+	AddressBook.AddEntry.0.JSON
+</pre>
+
+a client request to <code>AddressBook.AddEntry.0.JSON</code>
+resolves to the second service and <code>AddressBook.GetList.0.JSON</code>
+resolves to the first service.
+
+<p>
+If a service is configured with a wild-card entry, the service is
+responsible for <code>Function</code> verification and de-multiplexing.
+
+<p>
+
+(<em>Note to Reviewers:</em>
+<i>If wild-card lookups are deemed to be of no
+utility, the Lookup Table can be eliminated to reduce complexity and
+gain a tiny performance saving for clients).
+</i>
+
+
+<h4><a name=Reporting>Reporting Sockets</a></h4>
+
+Each service is provided with a Unix socket which is used by the
+service API to write performance data back to the plutonManager. The
+plutonManager uses this data to log aggregate statistics and to
+optimize the number of service instances.
+
+<p>
+As with Rendezvous Sockets, Reporting Sockets are similarly
+transparent to the service and managed by the client API
+and plutonManager.
+
+<a name=Together>
+<h3>Putting it all together</h3>
+</a>
+
+The Pluton Framework is conceptually straightforward. Services exist
+as stand-alone executables which listen for connections on their
+Rendezvous Socket. Clients use the API to discover and connect to
+these Rendezvous Sockets to exchange requests. The
+plutonManager's role is to create these Rendezvous Sockets and to
+manage the service instances. In summary:
+
+<ul>
+<li>
+Services and their Rendezvous Sockets are created for each configured
+service
+
+<p>
+<li>When a client makes a set of requests to services, the client API
+discovers the corresponding Rendezvous Sockets via the Lookup Table
+and asynchronously connects to each service to exchange the requests
+
+<p>
+<li>Services exchange requests via the service API which in turn exchanges
+them via the Rendezvous Socket
+
+<p>
+<li>The client and service APIs co-operate to ensure that timeouts on
+either side of the exchange do not stall indefinitely
+
+<p>
+<li>The service API periodically writes performance data to the
+plutonManager via the Reporting Socket. In turn the plutonManager uses
+this data to determine the appropriate number of instances and to
+log aggregate statistics so you can conduct trend analysis.
+
+</ul>
+
+Almost all of this is completely transparent to the application
+programs and is only relevant to the APIs and the plutonManager.
+
+<a name=Serialization>
+<h3>Application Serialization</h3>
+</a>
+
+The reader may be curious as to why no mention has thus far been made
+about the format of the data exchanged between clients and
+services. There is a reason for this: the Pluton Framework is
+serialization agnostic.
+
+<p>
+While the client and service APIs use a light-weight serialization to
+exchange the request data and context, the nature of the request data
+is entirely a matter for the application.  Looking at this from a
+layering perspective, the Pluton Framework is more akin to a transport
+layer than a presentation layer.
+
+<p>
+Naturally clients and services need to agree on what
+serializations they exchange and indeed the service key naming convention
+enforces the use of a well-known serialization type. But this is
+only a convention which is intended to aid understanding.
+
+<p>
+There are a number of reasons for being serialization agnostic. First,
+there is no "one true serialization"; often-times an implementation
+language strongly favors one serialization over all others. Second,
+services may simply be proxies to remote services which already have a
+well-defined serialization. Third, new serializations are invented
+or introduced somewhat more frequently than might be imagined (or
+desired).
+
+<p>
+Imposing a conversion to an arbitrary serialization in these
+circumstances seems counter-productive - particularly as many
+conversions such as JSON to XML to JSON are not reliably reversible.
+
+<p>
+Agnosticism has a consequence, of course. Namely that application
+programmers remain responsible for choosing their own serialization
+and services normally need to verify requests against the agreed
+serialization. The choice of serialization is often not easy to make
+and the wrong choice can impose significant functional and performance
+constraints. The Pluton Framework absolves itself of any
+responsibility in this regard.
+
+<a name=Benefits>
+<h3>Benefits</h3>
+</a>
+So what does this framework give us? Apart for simple parallel
+processing, the key feature is that the client application is isolated
+from the vagaries of the service implementation. This isolation
+affords a panoply of benefits:
+
+<ul>
+<li>Language independence - the client application could be written in
+PHP and the service could be written in, say, Java.
+
+<p><li>Bug isolation - if the service has bugs, then the client is fully
+insulated from problems such as random memory corruption.
+
+<p><li>Resource leak isolation - if a service is leaking a resource,
+say, memory or file descriptors, the client is insulated from these
+lost resources.
+
+<p><li>Increased application stability - a failing service no longer
+implies a failing client application. The client can safely detect
+service failure and respond accordingly.
+
+<p><li>Easier resource monitoring - each service instance is resource
+monitored by the plutonManager. This means accurate resource and
+latency costs can be determined for each type of service. Importantly,
+trends can be identified with new releases of a service.
+
+<p><li>Easier unit testing and regression testing of
+services - depending on how the services is started, the service API
+runs in one of two modes. In <em>manager mode</em> the service is run as
+a process controlled by the plutonManager. In <em>stand-alone mode</em>
+the service is run just like any other executable from a shell script
+or the command-line, with requests and responses being supplied via
+fd3 and fd4 respectively.
+<p>
+In <em>stand-alone mode</em> running a service regression
+test can be as easy as re-directing a request file to the service program
+and re-directing the service response to an output file for comparison.
+
+<p>
+Here is an example of a regression test which runs the service
+in <em>stand-alone</em> mode:
+
+<center>
+<table border=1>
+<td>
+<pre>
+#! /bin/sh
+
+/somepath/myservice 3&lt;inputRequest 4&gt;actualResponse
+cmp -s expectedResponse actualResponse && echo Success || echo Failure
+</pre>
+</table>
+</center>
+
+<p>Hopefully the simplicity speaks for itself.
+
+<p><li>Easier prototyping - a service can first be implemented in an
+quick-to-write language and subsequently re-written in a
+quick-to-execute language as needed.
+
+<p><li>Less disruptive installations - a service executable can be
+upgraded or replaced completely transparently to the client
+application. In other words, client applications can benefit from
+a newly installed service executable without needing to re-start.
+</ul>
+
+<p>
+In general, the goal is to help you follow the Unix maxim of writing
+programs which "do one thing well", then mix and match them to suit.
+
+<a name=Performance>
+<h3>Performance</h3>
+
+The Pluton Framework comes at a cost. Each service request involves
+connecting to a Unix socket and exchanging request and response data
+between processes. Looking at just the raw cost of those exchanges,
+without including any application and service overhead - such as
+serialization - suggests that a single modern CPU (circa 2006) can
+execute around 8,000 medium-sized exchanges per second. The rate is
+linear to the size of the request and response data.
+
+<p>
+Put another way, if your web application accepts, say, 100 requests
+per second and averages 5 service requests per web request, the raw
+overhead approximates 5*100/8000ths of your CPU, or about 6%. On the
+commonly deployed hyper-threaded, dual CPU server, this overhead
+reduces to around 2% of aggregate CPU capacity.
+
+<p>On a more positive note, due to the ease of parallelization, the
+Pluton Framework is especially suited to the trend towards multi-core,
+multi-cpu systems.
+
+<p>
+While this level of overhead seems tolerable, be warned that the total
+overhead is usually dominated by the type of application serialization
+used and the size and complexity of the data exchanged.
+
+<p>
+<hr>
+<font size=-1>
+$Id: background.html 260483 2009-10-16 18:47:56Z markd $
+&copy; Copyright Yahoo! Inc, 2007, 2008
+</font>
+</body>
+</html>
