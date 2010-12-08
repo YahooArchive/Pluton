@@ -22,7 +22,7 @@ web-serving latency and increase resiliency.
 
 Except as specifically stated below, the 3rd party software packages are not distributed as part of
 this project, but instead are separately downloaded from the respective provider and built on the
-developer’s machine as a pre-build step. 
+developer's machine as a pre-build step. 
 
 
 * State Threads Library for Internet Applications
