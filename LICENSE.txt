@@ -5,7 +5,8 @@
  *
  * @package    pluton
  *
- * @author     Mark Delany <markd@yahoo-inc.com>
+ * @author     Mark Delany <f4n@golf.emu.st>
+ *
  * @copyright  Copyrights for code authored by Yahoo! Inc. is licensed under the following terms:
  * @license    BSD Open Source License
  *

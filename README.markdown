@@ -33,9 +33,13 @@ developer's machine as a pre-build step.
 (A library that offers a threading API)
 [link](http://state-threads.sourceforge.net/)
 
+## License
+
+BSD Open Source License
+
 ## Copyright Notice
 
-Copyright @copy; 2010, Yahoo! Inc. All rights reserved.
+Copyright (c) 2010, Yahoo! Inc. All rights reserved.
 
 Redistribution and use of this software in source and binary forms, with or without modification, 
 are permitted provided that the following conditions are met:
