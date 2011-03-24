@@ -1,0 +1,79 @@
+<html>
+<head>
+<title>
+The Pluton Framework
+</title>
+</head>
+<body>
+<h3>Introduction</h3>
+Pluton is a simple framework which makes network applications
+lighter-weight, easier to debug, lower latency *and* potentially less
+resource intensive. The core features of the framework include:
+
+<p>
+<ul>
+<li>an interface which encourages and simplifies parallel
+requests to reduce latency (without the complexity of threads!)
+
+<li>a convenient, fast and simple API available in C, C++, php, perl
+and Java on FreeBSD and RHEL.
+
+<li>encapsulation of services into self-contained, independent
+executables
+
+<li>a serialization-agnostic interface between clients and services -
+you get to choose fast or pretty
+</ul>
+
+<p>
+Pluton was designed and developed by Mark Delany at Yahoo! and is used
+across many parts of the Yahoo network to substantially reduce
+web-serving latency and increase resiliency.
+
+<h3>HTML Documentation link</h3>
+Documentation corresponding to the latest version in the tree is
+<a href=http://markdelany.github.com/Pluton/1.0/index.html>here<a>.
+
+<h3>3rd Party Software Notice</h3>
+
+Except as specifically stated below, the 3rd party software packages are not distributed as part of
+this project, but instead are separately downloaded from the respective provider and built on the
+developer's machine as a pre-build step. 
+
+<ul>
+<li>State Threads Library for Internet Applications
+(A library that offers a threading API)
+[http://state-threads.sourceforge.net/]
+</ul>
+
+<h3>Copyright Notice</h3>
+<pre>
+
+Copyright (c) 2010, Yahoo! Inc. All rights reserved.
+
+Redistribution and use of this software in source and binary forms, with or without modification, 
+are permitted provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice, this list of conditions 
+and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice, this list of conditions 
+and the following disclaimer in the documentation and/or other materials provided with the distribution.
+
+* Neither the name of Yahoo! Inc. nor the names of its contributors may be used to endorse or promote 
+products derived from this software without specific prior written permission of Yahoo! Inc.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR 
+IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND 
+FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR 
+CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER 
+IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT 
+OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+
+</pre>
+
+</body>
+</html>
+
