@@ -18,6 +18,8 @@ Pluton was designed and developed by Mark Delany at Yahoo! and is used
 across many parts of the Yahoo network to substantially reduce
 web-serving latency and increase resiliency.
 
+HTML Documentation: https://github.com/yahoo/pluton/Docs/index.html
+
 --
 
 Except as specifically stated below, the 3rd party software packages are not distributed as part of
