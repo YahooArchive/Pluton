@@ -1,6 +1,9 @@
-# The Pluton Framework
+## HTML Documentation link
 
-## Introduction
+Documentation corresponding to the latest version in the tree is
+[here](http://markdelany.github.com/Pluton/1.0/index.html).
+
+## Introduction to The Pluton Framework
 
 Pluton is a simple framework which makes network applications
 lighter-weight, easier to debug, lower latency *and* potentially less
@@ -18,11 +21,6 @@ you get to choose fast or pretty
 Pluton was designed and developed by Mark Delany at Yahoo! and is used
 across many parts of the Yahoo network to substantially reduce
 web-serving latency and increase resiliency.
-
-## HTML Documentation link
-
-Documentation corresponding to the latest version in the tree is
-[here](http://markdelany.github.com/Pluton/1.0/index.html>here).
 
 ## 3rd Party Software Notice
 
