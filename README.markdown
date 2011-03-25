@@ -1,6 +1,6 @@
-![Pluton Logo][http://pluton.emu.st/bug1.jpg]
-
 ## HTML Documentation link
+
+!["PlutonLogo"][http://pluton.emu.st/bug1.jpg "Pluton Logo"]
 
 Documentation corresponding to the latest version in the tree is
 [here](http://markdelany.github.com/Pluton/1.0/index.html).
