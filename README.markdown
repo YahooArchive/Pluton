@@ -1,3 +1,5 @@
+![Pluton Logo][http://pluton.emu.st/bug1.jpg]
+
 ## HTML Documentation link
 
 Documentation corresponding to the latest version in the tree is
