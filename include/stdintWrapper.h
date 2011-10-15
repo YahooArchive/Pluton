@@ -28,8 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
-#ifndef _STDINTWRAPPER_H
-#define _STDINTWRAPPER_H
+#ifndef P_STDINTWRAPPER_H
+#define P_STDINTWRAPPER_H
 
 //////////////////////////////////////////////////////////////////////
 // Encapsulate OS differences for the include that defines fixed sized

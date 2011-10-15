@@ -28,8 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
-#ifndef _RATELIMIT_H
-#define _RATELIMIT_H
+#ifndef P_RATELIMIT_H
+#define P_RATELIMIT_H
 
 //////////////////////////////////////////////////////////////////////
 // A class that constrains how many actions can be performed per unit

@@ -51,7 +51,7 @@ util::rateLimit::allowed(time_t now, bool justTestingFlag)
   if (_timeUnit > 1) nowTimeUnit /= _timeUnit;	// Scale clock to rate quantum
 
   if (_lastTimeUnit != nowTimeUnit) {		// If into a different quantum
-    _lastTimeUnit = nowTimeUnit;		// then all limts are reset
+    _lastTimeUnit = nowTimeUnit;		// then all limits are reset
     _attempts = 0;
   }
 

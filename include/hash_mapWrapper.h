@@ -28,8 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
-#ifndef _HASHMAPWRAPPER_H
-#define _HASHMAPWRAPPER_H
+#ifndef P_HASHMAPWRAPPER_H
+#define P_HASHMAPWRAPPER_H
 
 //////////////////////////////////////////////////////////////////////
 // Encapsulate the differences between various OSes for defining an

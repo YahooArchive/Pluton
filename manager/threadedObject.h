@@ -28,8 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
-#ifndef _THREADEDOBJECT_H
-#define _THREADEDOBJECT_H
+#ifndef P_THREADEDOBJECT_H
+#define P_THREADEDOBJECT_H 1
 
 //////////////////////////////////////////////////////////////////////
 // All of the significant objects in the plutonManager have the same

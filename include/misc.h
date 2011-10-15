@@ -28,8 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
-#ifndef _PLUTON_MISC_H
-#define _PLUTON_MISC_H
+#ifndef P_MISC_H
+#define P_MISC_H
 
 //////////////////////////////////////////////////////////////////////
 // Static functions unique to pluton.

@@ -28,8 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
-#ifndef _SHMSERVICE_H
-#define _SHMSERVICE_H
+#ifndef P_SHMSERVICE_H
+#define P_SHMSERVICE_H
 
 //////////////////////////////////////////////////////////////////////
 // shmService is a shared memory segment that contains details about a

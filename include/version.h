@@ -28,8 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
-#ifndef _VERSION_H
-#define _VERSION_H
+#ifndef P_VERSION_H
+#define P_VERSION_H
 
 namespace version {
 static const char* rcsid = "build: ../src/pluton:Mon Mar 29 08:07:48 PDT 2010 ";

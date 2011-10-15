@@ -28,8 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
-#ifndef _PLUTON_FAULT_H
-#define _PLUTON_FAULT_H
+#ifndef PLUTON_FAULT_H
+#define PLUTON_FAULT_H
 
 #include <string>
 
@@ -53,8 +53,8 @@ namespace pluton {
   // easily determined. The pluton::fault class is available to both
   // the client and service APIs.
   //
-  // The "// E: " pattern is used by a script to auto-generate the
-  // code->english array used in the pluton::fault class.
+  // The "Slash Slash E: " pattern is used by a script to
+  // auto-generate the faultCodeToEnglish() function.
   //////////////////////////////////////////////////////////////////////
 
   enum faultCode {

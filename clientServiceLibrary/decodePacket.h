@@ -28,8 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
-#ifndef _DECODEPACKET_H
-#define _DECODEPACKET_H
+#ifndef P_DECODEPACKET_H
+#define P_DECODEPACKET_H 1
 
 
 //////////////////////////////////////////////////////////////////////

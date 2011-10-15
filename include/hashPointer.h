@@ -28,8 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
-#ifndef _HASHPOINTER_H
-#define _HASHPOINTER_H
+#ifndef P_HASHPOINTER_H
+#define P_HASHPOINTER_H
 
 //////////////////////////////////////////////////////////////////////
 // Define a common hash function for hash_maps using void* pointers as

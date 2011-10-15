@@ -28,8 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
-#ifndef _ISTREAMWRAPPER_H
-#define _ISTREAMWRAPPER_H
+#ifndef P_ISTREAMWRAPPER_H
+#define P_ISTREAMWRAPPER_H
 
 //////////////////////////////////////////////////////////////////////
 // Encapsulate OS differences for defining an STL istream.

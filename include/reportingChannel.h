@@ -28,8 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
-#ifndef _REPORTINGCHANNEL_H
-#define _REPORTINGCHANNEL_H
+#ifndef P_REPORTINGCHANNEL_H
+#define P_REPORTINGCHANNEL_H
 
 //////////////////////////////////////////////////////////////////////
 // The reporting channel is where the process writes events back to

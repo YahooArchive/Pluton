@@ -1,10 +1,105 @@
-The build process is currently pretty crude and probably only works on
-Linux. One task should be to make this work under GNU configure.
+0. To compile and install is the usual:
 
-1. Download and compile state-threads.sourceforge.net
+   ./configure && make && sudo make install
 
-2. Edit make.config to set the various paths
+   If configure fails, it probably means that you are missing
+   prerequisite packages. If the compile fails, file a bug report.
 
-3. From the top level directory run "make clean all"
+   To see if it looks like it's going to work, you can do a trial run
+   from the build directory.
+
+   a) Create a configuration for the echo service:
+
+   echo 'exec /usr/local/pluton/libexec/echo_service' >/tmp/system.echo.0.raw
+
+   b) Start the manager:
+
+   cd /tmp
+   /usr/local/pluton/bin/plutonManager
+
+   c) From another shell, try and ping the "echo" service:
+
+   /usr/local/pluton/bin/plPing -L /tmp/lookup.map -c5
+
+   The output should be something like this:
+
+   0 bytes: seq=1/0 time=0.004629
+   0 bytes: seq=2/0 time=0.000105
+   0 bytes: seq=3/0 time=0.000070
+   0 bytes: seq=4/0 time=0.000073
+   0 bytes: seq=5/0 time=0.000111
+   plPings: 5 Read=0 Write=0 Min: 0.000070 Max: 0.004629 Avg: 0.000997 Elapse: 0.4988
 
 
+1. Prerequisite Packages
+
+   a) Pluton needs the state threads library (libst).
+
+   b) If you want to use the "curl" service you'll need to install the
+      curl library (libcurl). (currently the build insists on this
+      package as "curl" is the archetypal service).
+
+   c) If you want to run the manager under damontools, then you need
+      to install that package too.
+
+
+2. From sources:
+
+   a) http://state-threads.sourceforge.net/
+
+      Depending on whether and where you install st.h and libst.* you
+      make have to tell ./configure where to find it by setting the
+      shell variables STATETHREADS_CFLAGS and STATETHREADS_LIBS to
+      something like:
+
+      STATETHREADS_CFLAGS="-I /usr/local/include"	\
+      STATETHREADS_LIBS="-L/usr/local/lib -lst"		\
+      ./configure
+
+   b) http://curl.haxx.se/libcurl/
+
+      Depending on whether and where you install curl you
+      make have to tell ./configure where to find it by setting the
+      shell variables LIBCURL_CFLAGS and LIBCURL_LIBS to
+      something like:
+
+      LIBCURL_CFLAGS="-I /usr/local/include"	\
+      LIBCURL_LIBS="-L/usr/local/lib -lcurl"	\
+      ./configure
+
+   c) http://cr.yp.to/daemontools.html
+
+
+3. FreeBSD (7, 8)
+
+   As root:
+
+   a) cd /usr/ports/devel/st && make install
+
+      Note. At the time of writing the ports version of st has a bug -
+      buthopefully that is fixed by the time you read this. If not,
+      use the "From sources" approach.
+
+   b) cd /usr/ports/ftp/curl && make install
+   c) cd /usr/ports/sysutils/daemontools && make install
+
+
+4. OS/X (10.6, 10.7)
+
+   a) The state threads library has to be installed from sources.
+
+   b) The libcurl library is installed as part of the base package.
+
+   c) If you use the "port" command (see http://www.macports.org),
+      then the install command is:
+
+	sudo port install daemontools
+
+      otherwise install from sources.
+
+
+5. Debian (6.0.2/squeeze)
+
+   a) sudo apt-get install libst-dev
+   b) sudo apt-get install libcurl3-dev
+   c) apt-get install daemontools daemontools-run

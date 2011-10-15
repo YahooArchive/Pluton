@@ -28,8 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
-#ifndef _PLUTON_COMMON_H
-#define _PLUTON_COMMON_H
+#ifndef PLUTON_COMMON_H
+#define PLUTON_COMMON_H
 
 //////////////////////////////////////////////////////////////////////
 // Define values that need to be visible to user code

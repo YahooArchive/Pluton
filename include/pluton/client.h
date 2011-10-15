@@ -28,8 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
-#ifndef _PLUTON_CLIENT_H
-#define _PLUTON_CLIENT_H
+#ifndef PLUTON_CLIENT_H
+#define PLUTON_CLIENT_H
 
 //////////////////////////////////////////////////////////////////////
 // Define the client APIs for the Pluton Framework. This is the only

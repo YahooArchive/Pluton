@@ -28,8 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
-#ifndef _LINETOARGV_H
-#define _LINETOARGV_H
+#ifndef P_LINETOARGV_H
+#define P_LINETOARGV_H
 
 //////////////////////////////////////////////////////////////////////
 // Tokenize a line of tokens into an argv. Return # argv entries of

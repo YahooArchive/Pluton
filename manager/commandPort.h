@@ -28,8 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
-#ifndef _COMMANDPORT_H
-#define _COMMANDPORT_H
+#ifndef P_COMMANDPORT_H
+#define P_COMMANDPORT_H 1
 
 //////////////////////////////////////////////////////////////////////
 // The command port accepts commands to display various internal

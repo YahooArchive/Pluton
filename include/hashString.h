@@ -28,8 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
-#ifndef _HASHSTRING_H
-#define _HASHSTRING_H
+#ifndef P_HASHSTRING_H
+#define P_HASHSTRING_H
 
 //////////////////////////////////////////////////////////////////////
 // Define a common hash function for hash_maps using std::string as

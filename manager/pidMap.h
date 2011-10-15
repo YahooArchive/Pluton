@@ -28,8 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
-#ifndef _PIDMAP_H
-#define _PIDMAP_H
+#ifndef P_PIDMAP_H
+#define P_PIDMAP_H 1
 
 //////////////////////////////////////////////////////////////////////
 // Track pid to process mappings so that the child reaper can find the

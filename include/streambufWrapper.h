@@ -28,8 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
-#ifndef _STREAMBUFWRAPPER_H
-#define _STREAMBUFWRAPPER_H
+#ifndef P_STREAMBUFWRAPPER_H
+#define P_STREAMBUFWRAPPER_H
 
 //////////////////////////////////////////////////////////////////////
 // Because this code has to work on new and legacy systems, some of

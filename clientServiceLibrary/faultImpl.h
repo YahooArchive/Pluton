@@ -28,8 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
-#ifndef _FAULTIMPL_H
-#define _FAULTIMPL_H
+#ifndef P_FAULTIMPL_H
+#define P_FAULTIMPL_H 1
 
 //////////////////////////////////////////////////////////////////////
 // The fault class is returned to the caller so they can get extensive

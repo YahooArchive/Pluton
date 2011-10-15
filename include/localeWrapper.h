@@ -28,8 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
-#ifndef _LOCALEWRAPPER_H
-#define _LOCALEWRAPPER_H
+#ifndef P_LOCALEWRAPPER_H
+#define P_LOCALEWRAPPER_H
 
 //////////////////////////////////////////////////////////////////////
 // Encapsulate OS differences for defining access to locale.

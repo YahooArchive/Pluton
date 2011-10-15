@@ -428,7 +428,7 @@ dispatch(manager* M, const char* cp, ostringstream& os)
 void
 commandPort::run()
 {
-  char* banner = "plutonManager command line connection. Try the 'help' command\n\n$ ";
+  static char banner[] = "plutonManager command line connection. Try the 'help' command\n\n$ ";
 
   st_write(ioSocket, banner, strlen(banner), 0);
   static const int maxBufferSize = 200;

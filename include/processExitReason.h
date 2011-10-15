@@ -28,8 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
-#ifndef _PROCESSEXITREASON_H
-#define _PROCESSEXITREASON_H
+#ifndef P_PROCESSEXITREASON_H
+#define P_PROCESSEXITREASON_H
 
 //////////////////////////////////////////////////////////////////////
 // Services and the manager use a common set of exit reasons to
