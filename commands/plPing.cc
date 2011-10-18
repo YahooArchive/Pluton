@@ -28,6 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
+#include "config.h"
+
 #include <iostream>
 #include <iomanip>
 #include <string>
@@ -75,7 +77,7 @@ static const char* usage =
 "\n"
 " ServiceKey: name of service to request (default: system.echo.0.raw)\n"
 "\n"
-"See also: http://localhost/docs/pluton/\n"
+"See also: " PACKAGE_URL "\n"
 "\n";
 
 //////////////////////////////////////////////////////////////////////

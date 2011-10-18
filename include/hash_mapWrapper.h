@@ -32,16 +32,24 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define P_HASHMAPWRAPPER_H
 
 //////////////////////////////////////////////////////////////////////
-// Encapsulate the differences between various OSes for defining an
-// STL hash_map.
+// Encapsulate the differences between various versions of STL
+// defining a hash_map. Includers must have included config.h
 //////////////////////////////////////////////////////////////////////
 
-#if defined(__FreeBSD__) && (__FreeBSD__ < 6)
+#ifdef HAVE_UNORDERED_MAP
+	#include <unordered_map>
+	#define P_STLMAP std::unordered_map
+#elif defined(HAVE_TR1_UNORDERED_MAP)
+	#include <tr1/unordered_map>
+	#define P_STLMAP std::tr1::unordered_map
+#elif defined(HAVE_HASH_MAP)
 	#include <hash_map>
-        using std::hash_map;
-#else
+        #define P_STLMAP std::hash_map
+#elif defined(HAVE_EXT_HASH_MAP)
 	#include <ext/hash_map>
-	using __gnu_cxx::hash_map;
+	#define P_STLMAP __gnu_cxx::hash_map
+#else
+	#error "No hash_map or unordered_map available - whimper"
 #endif
 
 #endif

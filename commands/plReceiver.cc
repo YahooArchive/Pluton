@@ -28,6 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
+#include "config.h"
+
 #include <string>
 
 #include <string>
@@ -39,9 +41,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace std;
 
 #include <st.h>
-#if defined(__MACH__) && defined(__APPLE__)
-#define NO_INCLUDE_POLL		// Coz st.h conflicts with poll.h
-#endif
 
 #include "global.h"
 #include "util.h"
@@ -79,7 +78,7 @@ static const char* usage =
 "\n"
 " Interface and Port define the listening address (default: localhost:14099)\n"
 "\n"
-"See also: http://localhost/docs/pluton/\n"
+"See also: " PACKAGE_URL "\n"
 "\n";
 
 //////////////////////////////////////////////////////////////////////

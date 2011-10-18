@@ -28,6 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
+#include "config.h"
+
 #include <iostream>
 #include <string>
 
@@ -36,6 +38,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <signal.h>
 #include <stdio.h>
+
+// stdlib.h is needed for calloc() on Debian
+#ifdef HAVE_STDLIB_H
+#include <stdlib.h>
+#endif
+
 #include <string.h>
 #include <fcntl.h>
 
@@ -139,7 +147,7 @@ bool
 process::startThread(process* P)
 {
   P->setThreadID(st_thread_create(processHandlerThread, (void*) P, 0,
-				  P->_S->getMANAGER()->getStStackSize()));
+				  P->_pS->getMANAGER()->getStStackSize()));
   if (debug::thread()) DBGPRT << "Process Thread Start: " << P->getThreadID() << endl;
 
   return (P->getThreadID() != 0);
@@ -253,7 +261,7 @@ process::forkExecChild(int acceptSocket, int shmFD, int reportingSocket)
 
   // Switch away from root as soon as possible
 
-  int setResults = setuidMaybe(_S->getEXEC());
+  int setResults = setuidMaybe(_pS->getEXEC());
   if (setResults < 0) {
     perror("Error: sete[ug]id to exec path failed");
     _exit(setResults);
@@ -319,8 +327,8 @@ process::forkExecChild(int acceptSocket, int shmFD, int reportingSocket)
   // Apply per-process limits if configured
   ////////////////////////////////////////////////////////////
 
-  if ((_S->getUlimitCPUMilliSeconds() > 0) && (_S->getMaximumRequests() > 0)) {
-    int limit = _S->getUlimitCPUMilliSeconds() * _S->getMaximumRequests() / util::MILLISECOND;
+  if ((_pS->getUlimitCPUMilliSeconds() > 0) && (_pS->getMaximumRequests() > 0)) {
+    int limit = _pS->getUlimitCPUMilliSeconds() * _pS->getMaximumRequests() / util::MILLISECOND;
     if (limit == 0) limit = 1;
     struct rlimit rlp;
     rlp.rlim_cur = rlp.rlim_max = limit;
@@ -328,16 +336,16 @@ process::forkExecChild(int acceptSocket, int shmFD, int reportingSocket)
     if (setrlimit(RLIMIT_CPU, &rlp) == -1) perror("Warning: setrlimit(RLIMIT_CPU) failed");
   }
 
-  if (_S->getUlimitDATAMemory() > 0) {
+  if (_pS->getUlimitDATAMemory() > 0) {
     struct rlimit rlp;
-    rlp.rlim_cur = rlp.rlim_max = _S->getUlimitDATAMemory() * 1024 * 1024;
+    rlp.rlim_cur = rlp.rlim_max = _pS->getUlimitDATAMemory() * 1024 * 1024;
     ++rlp.rlim_max;		// Give some grace
     if (setrlimit(RLIMIT_DATA, &rlp) == -1) perror("Warning: setrlimit(RLIMIT_DATA) failed");
   }
 
-  if (_S->getUlimitOpenFiles() > 0) {
+  if (_pS->getUlimitOpenFiles() > 0) {
     struct rlimit rlp;
-    rlp.rlim_cur = rlp.rlim_max = _S->getUlimitOpenFiles();
+    rlp.rlim_cur = rlp.rlim_max = _pS->getUlimitOpenFiles();
     ++rlp.rlim_max;		// Give some grace
     if (setrlimit(RLIMIT_NOFILE, &rlp) == -1) perror("Warning: setrlimit(RLIMIT_NOFILE) failed");
   }
@@ -346,8 +354,8 @@ process::forkExecChild(int acceptSocket, int shmFD, int reportingSocket)
   // And finally, exec the program.
   ////////////////////////////////////////////////////////////
 
-  const char* cd = _S->getCD();
-  const char* exec = _S->getEXEC();
+  const char* cd = _pS->getCD();
+  const char* exec = _pS->getEXEC();
   if (debug::child()) {
     write(2, "cd " , 3);
     write(2, cd, strlen(cd));

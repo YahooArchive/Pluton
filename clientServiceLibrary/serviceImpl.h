@@ -127,6 +127,7 @@ namespace pluton {
     perCallerService*		_defaultOwner;		// These two are used by
     serviceRequestImpl*		_defaultRequest;	// standard services
 
+    typedef void (*sig_t) (int);
     sig_t			_oldSIGURGHandler;
     bool			_packetTraceFlag;
     bool			_debugFlag;

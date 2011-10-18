@@ -28,6 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
+#include "config.h"
+
 #include <iostream>
 #include <hash_mapWrapper.h>
 
@@ -36,8 +38,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assert.h>
 #include <signal.h>
 #include <unistd.h>
-
-#include "version.h"
 
 #include "pluton/fault.h"
 #include "pluton/client.h"
@@ -180,9 +180,9 @@ mutex_unlock(const char* who, pluton::mutex_t m)
 
 
 //////////////////////////////////////////////////////////////////////
-// Static routines to Create/Assign a clientImpl per thread. A
-// hash_map is used to map the thread id to a unique clientImpl. In
-// effect these are per-thread singletons.
+// Static routines to Create/Assign a clientImpl per thread. An STL
+// map is used to map the thread id to a unique clientImpl. In effect
+// these are per-thread singletons.
 //////////////////////////////////////////////////////////////////////
 
 struct hash_thread_t
@@ -194,7 +194,7 @@ struct hash_thread_t
 };
 
 
-typedef hash_map<pluton::thread_t, pluton::clientImpl*, hash_thread_t> threadToClientImplMap;
+typedef P_STLMAP<pluton::thread_t, pluton::clientImpl*, hash_thread_t> threadToClientImplMap;
 typedef threadToClientImplMap::iterator threadToClientImplMapIter;
 
 static threadToClientImplMap* _threadToClientMap = 0;
@@ -314,7 +314,7 @@ pluton::client::~client()
 const char*
 pluton::clientBase::getAPIVersion()
 {
-  return version::rcsid;
+  return PACKAGE_VERSION;
 }
 
 

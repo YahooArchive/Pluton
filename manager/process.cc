@@ -28,6 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
+#include "config.h"
+
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -116,7 +118,7 @@ process::process(service* setS, int setID, const std::string& setName,
 		 int acceptSocket, int shmServiceFD, int reportingSocket,
 		 pluton::shmServiceHandler* setShmService)
   : threadedObject(setS),
-    _S(setS), _id(setID), _name(setName), _shmService(setShmService),
+    _pS(setS), _id(setID), _name(setName), _shmService(setShmService),
     _exitReason(processExit::noReason), _sdReason(processExit::noReason), _backoffReason(0),
     _acceptSocket(acceptSocket), _shmServiceFD(shmServiceFD), _reportingSocket(reportingSocket),
     _stErrorNetFD(0),
@@ -164,8 +166,8 @@ process::initialize()
   _logID = os.str();
 
   if (logging::processStart()) LOGPRT << "Process Start: " << _logID
-				      << " (" << _S->getActiveProcessCount() << " of "
-				      << _S->getMaximumProcesses()
+				      << " (" << _pS->getActiveProcessCount() << " of "
+				      << _pS->getMaximumProcesses()
 				      << ")" << endl;
 
   // Every 20th process gets an early exit so that leakage trends
@@ -883,7 +885,7 @@ process::completeShutdownSequence()
 
   if (logging::processExit()) LOGPRT << "Process Exit: " << _logID << endl;
 
-  _S->subtractActiveProcessCount();	// Tell the service we're gone
+  _pS->subtractActiveProcessCount();	// Tell the service we're gone
 
   _shmService->resetProcess(_id);
 }

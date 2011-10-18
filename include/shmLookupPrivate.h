@@ -64,7 +64,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 class relativeHashMap {
  public:
-  static const uint32_t VERSION = 1001;
+  static const uint32_t SHMVERSION = 1001;
 
   uint32_t	_version;
   char 		_remapFlag;

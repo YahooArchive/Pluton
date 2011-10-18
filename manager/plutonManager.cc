@@ -28,9 +28,17 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
+#include "config.h"
+
 #include <iostream>
 
 #include <signal.h>
+
+// stdlib.h is needed for exit() on Debian
+#ifdef HAVE_STDLIB_H
+#include <stdlib.h>
+#endif
+
 #include <time.h>
 #include <unistd.h>
 
@@ -41,7 +49,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "util.h"
 #include "service.h"
 #include "manager.h"
-#include "version.h"
 
 using namespace std;
 
@@ -83,7 +90,7 @@ static const char* usage =
 "      (default: -1 inherit manager egid)\n"
 " -z   Size of the stack for each state-thread (default: 0)\n"
 "\n"
-"See also: http://localhost/docs/pluton/\n"
+"See also: " PACKAGE_URL "\n"
 "\n";
 
 
@@ -183,7 +190,7 @@ main(int argc, char **argv)
 
   M.preRun();
 
-  LOGPRT << "Manager ready: " << version::rcsid << endl;
+  LOGPRT << "Manager ready: " << "Version " PACKAGE_VERSION << endl;
   while (M.run()) ;
 
   M.initiateShutdownSequence(M.getQuitMessage());
@@ -195,7 +202,7 @@ main(int argc, char **argv)
 
   M.completeShutdownSequence();
 
-  LOGPRT << "Manager exiting: " << version::rcsid << endl;
+  LOGPRT << "Manager exiting: " << "Version " PACKAGE_VERSION << endl;
 
   return 0;	// return rather than exit so that ~M is called
 }
@@ -215,7 +222,7 @@ manager::parseCommandLineOptions(int argc, char **argv)
     switch (optionChar) {
 
     case 'h':
-      cout << usage << version::rcsid << endl;
+      cout << usage << "Version " PACKAGE_VERSION << endl;
       exit(0);
 
     case 'o':
@@ -247,7 +254,7 @@ manager::parseCommandLineOptions(int argc, char **argv)
       LOGPRT << "Option: debug=" << optarg << endl;
       if (!debug::setFlag(optarg)) {
 	cerr << "Error: Unrecognized debug option: " << optarg << endl;
-        cerr << usage << version::rcsid << endl;
+        cerr << usage << "Version " PACKAGE_VERSION << endl;
 	die("Invoked with bad parameter");
       }
       break;
@@ -256,7 +263,7 @@ manager::parseCommandLineOptions(int argc, char **argv)
       _emergencyExitDelay = atoi(optarg);
       if (_emergencyExitDelay < 1) {
 	cerr << "Error: Emergency Exit Delay is too small: " << optarg << endl;
-	cerr << usage << version::rcsid << endl;
+	cerr << usage << "Version " PACKAGE_VERSION << endl;
         die("Invoked with bad parameter");
       }
       LOGPRT << "Option: Emergency Shutdown Delay=" << optarg << endl;
@@ -265,13 +272,13 @@ manager::parseCommandLineOptions(int argc, char **argv)
     case 'g':
       if (geteuid() != 0) {
 	cerr << "Error: default gid can only be set when running as root" << endl;
-	cerr << usage << version::rcsid << endl;
+	cerr << usage << "Version " PACKAGE_VERSION << endl;
 	die("Invoked root-only option as non-root");
       }
       _defaultGID = atoi(optarg);
       if (_defaultGID < 1) {
 	cerr << "Error: default gid is too small: " << optarg << endl;
-	cerr << usage << version::rcsid << endl;
+	cerr << usage << "Version " PACKAGE_VERSION << endl;
 	die("Invoked with bad parameter");
       }
       LOGPRT << "Option: default gid=" << _defaultGID << "s" << endl;
@@ -281,7 +288,7 @@ manager::parseCommandLineOptions(int argc, char **argv)
       LOGPRT << "Option: logging=" << optarg << endl;
       if (!logging::setFlag(optarg)) {
 	cerr << "Error: Unrecognized logging option: " << optarg << endl;
-	cerr << usage << version::rcsid << endl;
+	cerr << usage << "Version " PACKAGE_VERSION << endl;
 	die("Invoked with bad parameter");
       }
       break;
@@ -290,7 +297,7 @@ manager::parseCommandLineOptions(int argc, char **argv)
       _statisticsLogInterval = atoi(optarg);
       if (_statisticsLogInterval < 1) {
 	cerr << "Error: statistics log interval is too small: " << optarg << endl;
-        cerr << usage << version::rcsid << endl;
+        cerr << usage << "Version " PACKAGE_VERSION << endl;
 	die("Invoked with bad parameter");
       }
       LOGPRT << "Option: statistics log interval=" << _statisticsLogInterval << "s" << endl;
@@ -299,13 +306,13 @@ manager::parseCommandLineOptions(int argc, char **argv)
     case 'u':
       if (geteuid() != 0) {
 	cerr << "Error: default uid can only be set when running as root" << endl;
-	cerr << usage << version::rcsid << endl;
+	cerr << usage << "Version " PACKAGE_VERSION << endl;
 	die("Invoked root-only option as non-root");
       }
       _defaultUID = atoi(optarg);
       if (_defaultUID < 1) {
 	cerr << "Error: default uid is too small: " << optarg << endl;
-	cerr << usage << version::rcsid << endl;
+	cerr << usage << "Version " PACKAGE_VERSION << endl;
 	die("Invoked with bad parameter");
       }
       LOGPRT << "Option: default uid=" << _defaultUID << "s" << endl;
@@ -317,7 +324,7 @@ manager::parseCommandLineOptions(int argc, char **argv)
       break;
 
     default:
-      cerr << usage << version::rcsid << endl;
+      cerr << usage << "Version " PACKAGE_VERSION << endl;
       die("Invoked with invalid options");
     }
   }
@@ -330,13 +337,13 @@ manager::parseCommandLineOptions(int argc, char **argv)
   if (geteuid() == 0) {
     if (_defaultUID < 1) {
       cerr << "Error: Must provide a default uid with -u when running seteuid() root" << endl;
-      cerr << usage << version::rcsid << endl;
+      cerr << usage << "Version " PACKAGE_VERSION << endl;
       die("Invoked without mandatory parameter");
     }
  
     if (_defaultGID < 1) {
       cerr << "Error: Must provide a default gid with -g when running seteuid() root" << endl;
-      cerr << usage << version::rcsid << endl;
+      cerr << usage << "Version " PACKAGE_VERSION << endl;
       die("Invoked without mandatory parameter");
     }
   }

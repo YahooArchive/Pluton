@@ -28,6 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
+#include "config.h"
+
 //////////////////////////////////////////////////////////////////////
 // The main source module for all of the pluton::service processing.
 //////////////////////////////////////////////////////////////////////
@@ -39,7 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sys/types.h>
 #include <sys/socket.h>
-#ifdef __linux__
+#ifdef HAVE_SYS_SELECT
 #include <sys/select.h>
 #endif
 #include <sys/stat.h>
@@ -137,7 +139,7 @@ openAcceptSocket(const char* path)
     return -1;
   }
 
-  bzero((void*) &su, sizeof(su));
+  memset((void*) &su, '\0', sizeof(su));
   su.sun_family = AF_UNIX;
   strcpy(su.sun_path, path);
 
@@ -748,7 +750,7 @@ pluton::serviceImpl::getOneConnection(pluton::perCallerService* owner, unsigned 
 
 //////////////////////////////////////////////////////////////////////
 // Use select to check for accept. There is a timing window between
-// the select and the accept where another service could have grabs
+// the select and the accept where another service could have grabbed
 // the connection. In this case we will block and if an attempt by the
 // manager to signal us occurs then, then we will ultimately
 // abnormally terminate as we will stay blocked until the Manager

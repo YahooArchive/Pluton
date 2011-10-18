@@ -28,6 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
+#include "config.h"
+
 #include "hash_mapWrapper.h"
 #include <iostream>
 
@@ -43,9 +45,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace std;
 
 
-static hash_map<pid_t, process*>			_map;
-typedef hash_map<pid_t, process*>::iterator		mapIter;
-typedef hash_map<pid_t, process*>::const_iterator	mapConstIter;
+static P_STLMAP<pid_t, process*>			_map;
+typedef P_STLMAP<pid_t, process*>::iterator		mapIter;
+typedef P_STLMAP<pid_t, process*>::const_iterator	mapConstIter;
 
 //////////////////////////////////////////////////////////////////////
 // Maintain a mapping between process id and process* so that child

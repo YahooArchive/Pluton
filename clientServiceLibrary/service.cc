@@ -28,11 +28,12 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
+#include "config.h"
+
 #include <string>
 
 #include <string.h>
 
-#include "version.h"
 #include "pluton/fault.h"
 #include "pluton/service.h"
 #include "serviceImpl.h"
@@ -65,7 +66,7 @@ pluton::service::~service()
 const char*
 pluton::service::getAPIVersion()
 {
-  return version::rcsid;
+  return PACKAGE_VERSION;
 }
 
 bool

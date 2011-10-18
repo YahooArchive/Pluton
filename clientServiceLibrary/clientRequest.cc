@@ -33,6 +33,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // protect against binary compatability.
 //////////////////////////////////////////////////////////////////////
 
+#include "config.h"
+
 #include <string>
 
 #include <string.h>

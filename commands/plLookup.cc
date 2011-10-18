@@ -28,6 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
+#include "config.h"
+
 #include <iostream>
 #include <string>
 
@@ -59,7 +61,7 @@ static const char* usage =
 "       The intent of this option is to have plLookup wait until a\n"
 "       service configuration has been loaded by the Manager.\n"
 "\n"
-"See also: http://localhost/docs/pluton/\n"
+"See also: " PACKAGE_URL "\n"
 "\n";
 
 //////////////////////////////////////////////////////////////////////

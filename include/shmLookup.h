@@ -52,7 +52,7 @@ class shmLookup {
   shmLookup();
   ~shmLookup();
 
-  typedef hash_map<std::string, std::string, hashString> mapType;
+  typedef P_STLMAP<std::string, std::string, hashString> mapType;
 
   const char*	buildMap(const char* path, const mapType&);
 

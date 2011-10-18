@@ -28,6 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
+#include "config.h"
+
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/mman.h>
@@ -75,7 +77,7 @@ pluton::shmServiceHandler::mapManager(int fd, int processCount, int threadCount)
 
   _shmServicePtr = static_cast<shmService*>(p);
 
-  bzero((void*) _shmServicePtr, _mapSize);
+  memset((void*) _shmServicePtr, '\0', _mapSize);
   _shmServicePtr->_header._version = plutonGlobal::shmServiceVersion;
 
   return pluton::noFault;

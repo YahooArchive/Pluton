@@ -52,7 +52,7 @@
       shell variables STATETHREADS_CFLAGS and STATETHREADS_LIBS to
       something like:
 
-      STATETHREADS_CFLAGS="-I /usr/local/include"	\
+      STATETHREADS_CFLAGS="-I/usr/local/include"	\
       STATETHREADS_LIBS="-L/usr/local/lib -lst"		\
       ./configure
 
@@ -63,7 +63,7 @@
       shell variables LIBCURL_CFLAGS and LIBCURL_LIBS to
       something like:
 
-      LIBCURL_CFLAGS="-I /usr/local/include"	\
+      LIBCURL_CFLAGS="-I/usr/local/include"	\
       LIBCURL_LIBS="-L/usr/local/lib -lcurl"	\
       ./configure
 

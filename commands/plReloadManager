@@ -5,7 +5,8 @@
 # plutonManager is managed.
 
 # This script (mostly) only exists because you cannot nest yinst
-# commands with yinst.
+# commands with yinst (This is a Yahoo-ism that is otherwise
+# irrelevant).
 
 args=`getopt a $*`
 if [ $? != 0 ]
@@ -35,33 +36,45 @@ done
 # Check that the user can issue the svc command
 
 id=`id -un`
-warn=0
+
 if [ $id != 'yahoo' -a $id != 'root' ]; then
-    warn=1
     cat <<EOF
 
 WARNING: You are running as user $id but normally this command is only
-WARNING: effective when running as 'yahoo' or 'root'.
-
-WARNING: It is likely this request will fail, but we're proceeding
-WARNING: anyway, just in case you know something we don't...
+WARNING: effective when running as 'yahoo' or 'root'. It is likely
+WARNING: this command will fail, but we're proceeding anyway, just in
+WARNING: case you know something we don't...
 
 EOF
 fi
 
-if [ $reloadAll = 'y' ]; then
-    echo Reload All
-    svc -i /usr/local/var/service/plutonManager
-else
-    echo Reload Changed
-    svc -h /usr/local/var/service/plutonManager
-fi
+# Find that pesky service directory containing the plutonManager
 
-# Bug. svc doesn't exit non-zero on failure! Bah humbug djb.
+foundit=
+for d in /service /etc/service /var/service /usr/local/var/service
+do
+    p=$p/plutonManager
+    if [ -d $p ]; then
+	echo Manager service found at $p
+	foundit=$p
+	if [ $reloadAll = 'y' ]; then
+	    echo Reload All
+	    svc -i $p
+	else
+	    echo Reload Changed
+	    svc -h $p
+	fi
+	break;
+    fi
+done
 
+# Bug. svc doesn't exit non-zero on failure! Bah humbug djb - a rare
+# oversight on your part.
+
+if [ "$foundit" ]; then
 cat <<EOF
 
-The plutonManager has been notified to reload the configuration.
+The plutonManager at $foundit has been notified to reload its configuration.
 
 Do not expect configuration changes to be instantaneous as the
 plutonManager patiently waits for active services to finish. In the
@@ -69,3 +82,14 @@ worst case, the plutonManager can wait for over twelve seconds before
 uncremoniously evicting a recalcitrant service.
 
 EOF
+exit
+fi
+
+cat <<EOF
+
+ERROR: Could not find the service path for the plutonManager. Reload
+ERROR: not performed.
+
+EOF
+
+exit 1

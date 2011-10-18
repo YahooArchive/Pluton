@@ -75,7 +75,7 @@ class process : public threadedObject {
 
   pid_t		getPID() const { return _pid; }
   int 		getID() const { return _id; }
-  service* 	getSERVICE() const { return _S; }
+  service* 	getSERVICE() const { return _pS; }
 
   void	trackCosts(const char* function, const pluton::reportingChannel::performanceDetails&);
   void	notifyChildExit(int status, struct rusage& ru);
@@ -104,7 +104,7 @@ class process : public threadedObject {
   static int		currentObjectCount;
   static int		maximumObjectCount;
 
-  typedef		hash_map<const process*, process*, hashPointer>	trackMap;
+  typedef		P_STLMAP<const process*, process*, hashPointer>	trackMap;
   static trackMap	processTracker;
 
   int	setuidMaybe(const char* execPath) const;
@@ -119,7 +119,7 @@ class process : public threadedObject {
   void	reportChildCosts();
 
 
-  service*      		_S;
+  service*      		_pS;		// Used to be _S but Solaris reserves that
   int				_id;
   std::string			_name;
   pluton::shmServiceHandler*	_shmService;

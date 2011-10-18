@@ -28,13 +28,19 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
+#include "config.h"
+
 #include <iostream>
 #include <fstream>
 
-#include <sys/types.h>
+
 #include <sys/stat.h>
+#include <sys/types.h>
+
+// Reading a directory - are we having fun yet?
 
 #include <dirent.h>
+#define NAMLEN(dirent) strlen ((dirent)->d_name)
 
 #include "util.h"
 #include "debug.h"
@@ -115,17 +121,7 @@ manager::loadConfigurations(time_t loadSince)
   while((dent = readdir(D))) {
     string dname;
 
-    // Unified Unix Bwaaaahahaha (DT_UNKNOWN usually means NFS)
-
-#if defined(DT_REG) && defined(DT_LNK) && defined(DT_UNKNOWN)
-    if ((dent->d_type != DT_REG) && (dent->d_type != DT_LNK) && (dent->d_type != DT_UNKNOWN)) {
-      continue;
-    }
-#endif
-
-    if (dent->d_type == DT_DIR) continue;
-
-#ifdef __linux__
+#ifndef HAVE_STRUCT_DIRENT_D_NAMLEN
     dname.assign(dent->d_name);                 // They promise \0 termination
 #else
     dname.assign(dent->d_name, dent->d_namlen); // but others define length
@@ -159,9 +155,14 @@ manager::loadConfigurations(time_t loadSince)
     int res = stat(path.c_str(), &sb);
     if (res == -1) {
       if (logging::serviceConfig()) {
-	LOGPRT << "Config Warning: Cannot stat '" << path << "'" << endl;
+	LOGPRT << "Config Warning: Cannot stat '" << dname << "'" << endl;
       }
       continue;
+    }
+
+    if (!S_ISREG(sb.st_mode) & !S_ISLNK(sb.st_mode)) {
+	LOGPRT << "Config Warning: Ignoring non-regular files/links '" << dname << "'" << endl;
+	continue;
     }
 
     service* oldSM = 0;

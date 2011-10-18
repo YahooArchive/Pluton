@@ -32,6 +32,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // The main source module for all the pluton::client processing.
 //////////////////////////////////////////////////////////////////////
 
+#include "config.h"
+
 #include <iostream>
 #include <sstream>
 
@@ -192,7 +194,7 @@ static int
 connectSocket(int sock, const char* path)
 {
   struct sockaddr_un su;
-  bzero((void*) &su, sizeof(su));
+  memset((void*) &su, '\0', sizeof(su));
   su.sun_family = AF_UNIX;
 
   if (strlen(path) >= sizeof(su.sun_path)) {

@@ -28,12 +28,20 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
+#include "config.h"
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
 
 #include <signal.h>
 #include <stdio.h>
+
+// stdlib.h is needed for exit() on Debian
+#ifdef HAVE_STDLIB_H
+#include <stdlib.h>
+#endif
+
 #include <unistd.h>
 
 #include <iostream>
@@ -78,7 +86,7 @@ static const char* usage =
 "\n"
 "Arguments: passed to the service executable via execvp()\n"
 "\n"
-"See also: http://localhost/docs/pluton/\n"
+"See also: " PACKAGE_URL "\n"
 "\n";
 
 

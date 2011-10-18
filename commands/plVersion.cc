@@ -28,6 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
+#include "config.h"
+
 #include <iostream>
 
 #include <stdlib.h>
@@ -38,7 +40,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "pluton/client.h"
 
 #include "global.h"
-#include "version.h"
 
 using namespace std;
 
@@ -50,7 +51,7 @@ static const char* usage =
 "\n"
 " -h   Print this usage message on STDOUT and exit(0)\n"
 "\n"
-"See also: http://localhost/docs/pluton/\n"
+"See also: " PACKAGE_URL "\n"
 "\n";
 
 //////////////////////////////////////////////////////////////////////
@@ -63,16 +64,16 @@ main(int argc, char **argv)
   while ((optionChar = getopt(argc, argv, "h")) != -1) {
     switch (optionChar) {
     case 'h':
-      cout << usage << version::rcsid << endl;
+      cout << usage << PACKAGE_VERSION << endl;
       exit(0);
 
     default:
-      cerr << usage << version::rcsid << endl;
+      cerr << usage << PACKAGE_VERSION << endl;
       exit(1);
     }
   }
 
-  string manager = version::rcsid;
+  string manager = PACKAGE_VERSION;
   string client = pluton::client::getAPIVersion();
   string service = pluton::service::getAPIVersion();
 

@@ -28,6 +28,10 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
+#include "config.h"
+
+#include <ctype.h>
+
 #include "lineToArgv.h"
 
 //////////////////////////////////////////////////////////////////////
@@ -41,7 +45,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // 2. Leading and trailing whitespace are ignored
 //
 // 3. A token can have a single quote or a double quote and is
-//    then terminated solely the matching quote.
+//    then terminated solely by the matching quote.
 //
 // 4. Backslash escaping works in unquoted tokens and means to never
 //    treat the next character syntactically. That means it can be
@@ -78,17 +82,17 @@ util::lineToArgv(const char* inputLine, int len, char* buffer, char** argv, int 
 
   enum { skippingWS, copyingToken, lookingForQuote, escapeNext } state = skippingWS;
 
-  // Ensure no residual goop
+  // Ensure no initial goop in the returned array
 
   for (int ix=0; ix < maxArgv; ++ix) argv[ix] = 0;
 
   while (len > 0) {
-    char cc = *inputLine;
+    unsigned char cc = (unsigned char) *inputLine;
     ++inputLine; --len; ++column;
 
     switch (state) {
     case skippingWS:
-      if ((cc == ' ') || (cc == '\t')) break;
+      if (isspace(cc)) break;
 
       state = copyingToken;
       if (argc == maxArgv) {
@@ -106,7 +110,7 @@ util::lineToArgv(const char* inputLine, int len, char* buffer, char** argv, int 
 	break;
       }
 
-      if ((cc == ' ') || (cc == '\t')) {// WS terminates this token
+      if (isspace(cc)) {		// WS terminates this token
 	*buffer++ = '\0';
 	state = skippingWS;
 	++argc;				// Added to argv list

@@ -28,8 +28,10 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
+#include "config.h"
+
 #include "hashString.h"
-#include "hash_mapWrapper.h"
+
 #include <string>
 
 #include <sys/types.h>
@@ -112,7 +114,7 @@ shmLookup::mapReader(const char* path, pluton::faultCode& fc)
   close(fd);
 
   _baseAddress = static_cast<relativeHashMap*>(shmp);
-  if (_baseAddress->_version != relativeHashMap::VERSION) {
+  if (_baseAddress->_version != relativeHashMap::SHMVERSION) {
     fc = pluton::shmVersionMisMatch;
     return -1;
   }

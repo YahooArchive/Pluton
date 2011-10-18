@@ -28,6 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
+#include "config.h"
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
@@ -68,7 +70,7 @@ listenInterface::resolve(const char* interface, int port)
 {
   struct addrinfo hints;
 
-  bzero((void*) &hints, sizeof(hints));
+  memset((void*) &hints, '\0', sizeof(hints));
   hints.ai_flags = AI_PASSIVE;
   hints.ai_flags |= AI_CANONNAME;
   hints.ai_family = PF_INET;

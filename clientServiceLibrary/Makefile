@@ -135,8 +135,8 @@ INSTALL_SCRIPT = ${INSTALL}
 INSTALL_STRIP_PROGRAM = $(install_sh) -c -s
 LD = /usr/bin/ld
 LDFLAGS = 
-LIBCURL_CFLAGS = -I/usr/local/include  
-LIBCURL_LIBS = -L/usr/local/lib -lcurl  
+LIBCURL_CFLAGS = -I/usr/local/include
+LIBCURL_LIBS = -L/usr/local/lib -lcurl
 LIBOBJS =  ${LIBOBJDIR}error$U.o
 LIBS = 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool
@@ -558,7 +558,7 @@ uninstall-am: uninstall-libLTLIBRARIES
 
 
 faultEnglish.cc.txt:	$(top_srcdir)/include/pluton/fault.h
-	$(SHELL) ./generate_FaultEnglish.sh <$< >$@
+	$(SHELL) ./generate_FaultEnglish.sh <faultEnglish.cc.txt >$@
 
 faultImpl.lo:	faultEnglish.cc.txt
 

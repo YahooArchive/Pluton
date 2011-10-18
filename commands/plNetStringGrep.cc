@@ -28,6 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
+#include "config.h"
+
 #include <iostream>
 
 #include <unistd.h>
@@ -77,7 +79,7 @@ static const char* usage =
 "If the input file does not contain an invalid netString\n"
 "an error message is written to STDERR and the program exits.\n"
 "\n"
-"See also: http://localhost/docs/pluton/\n"
+"See also: " PACKAGE_URL "\n"
 "\n";
 
 //////////////////////////////////////////////////////////////////////

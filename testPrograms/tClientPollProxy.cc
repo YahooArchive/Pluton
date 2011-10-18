@@ -19,10 +19,6 @@
 
 #include <st.h>
 
-#if defined(__MACH__) && defined(__APPLE__)
-#define NO_INCLUDE_POLL		// Coz st.h conflicts with poll.h
-#endif
-
 #include "util.h"
 #include "pluton/client.h"
 

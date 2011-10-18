@@ -222,8 +222,8 @@ namespace pluton {
 
     ////////////////////////////////////////
 
-    hash_map<std::string, std::string, hashString>	contextMap;
-    typedef hash_map<std::string, std::string, hashString>::const_iterator contextMapConstIter;
+    P_STLMAP<std::string, std::string, hashString>	contextMap;
+    typedef P_STLMAP<std::string, std::string, hashString>::const_iterator contextMapConstIter;
   };
 }
 

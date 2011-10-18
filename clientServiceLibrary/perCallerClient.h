@@ -35,9 +35,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sys/time.h>
 
-#ifndef NO_INCLUDE_POLL
+//////////////////////////////////////////////////////////////////////
+// If poll.h is re-included on some platforms (OS/X) it creates a
+// conflict so we test for the presence of st.h and avoid re-including
+// poll.h if so.
+//////////////////////////////////////////////////////////////////////
+
+#ifndef ST_VERSION
 #include <poll.h>
 #endif
+
 #include "signal.h"
 
 #include "timeoutClock.h"
@@ -132,8 +139,9 @@ namespace pluton {
     int			_readingCount;
     pluton::timeoutClock	_clock;
 
+    typedef void (*sig_t) (int);
     sig_t		_originalHandler;
-
+ 
     pluton::clientImpl*	_myThreadImpl;
 
     //////////////////////////////////////////////////////////////////////

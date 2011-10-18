@@ -28,6 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
+#include "config.h"
+
 #include <iostream>
 
 #include <string>
@@ -44,11 +46,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std;
 
-#ifdef __linux__
-static int optreset = 0;	// Meaningless in linux
+#if HAVE_DECL_OPTRESET
+extern int optreset;		// Needed for FBSD & OS/X
 #else
-extern int optreset;
+static int optreset = 0;	// but meaningless on others (Linux/Solaris)
 #endif
+
 extern int optind;
 extern int opterr;
 

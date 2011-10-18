@@ -28,6 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
+#include "config.h"
+
 using namespace std;
 
 #include <vector>
@@ -64,7 +66,7 @@ static const char* usage =
 "                     Request Data           CPU                 Latency\n"
 "command probability MinSize MaxSize   MinValue MaxValue    MinValue MaxValue\n"
 "\n"
-"See also: http://localhost/docs/pluton/\n"
+"See also: " PACKAGE_URL "\n"
 "\n";
 
 //////////////////////////////////////////////////////////////////////

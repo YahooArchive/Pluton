@@ -178,7 +178,7 @@ class service : public threadedObject {
   static int		currentObjectCount;
   static int		maximumObjectCount;
 
-  typedef		hash_map<const service*, service*, hashPointer>	trackMap;
+  typedef		P_STLMAP<const service*, service*, hashPointer> trackMap;
   static trackMap	serviceTracker;
 
   std::string	_configurationPath;
@@ -215,9 +215,9 @@ class service : public threadedObject {
 
   std::list<int>	_unusedIds;		// Pre-allocated for ID
 
-  hash_map<const process*, process*, hashPointer> 	_processMap;
-  typedef hash_map<const process*, process*, hashPointer>::iterator	processMapIter;
-  typedef hash_map<const process*, process*, hashPointer>::const_iterator processMapConstIter;
+  P_STLMAP<const process*, process*, hashPointer> 	_processMap;
+  typedef P_STLMAP<const process*, process*, hashPointer>::iterator	processMapIter;
+  typedef P_STLMAP<const process*, process*, hashPointer>::const_iterator processMapConstIter;
 
   int		_childCount;			// Forked but not exited
   int		_activeProcessCount;		// Forked and prior to shutdown

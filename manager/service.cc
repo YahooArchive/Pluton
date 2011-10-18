@@ -28,6 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
+#include "config.h"
+
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -763,7 +765,7 @@ service::createAcceptSocket(const std::string& socketDirectory)
   tempPath += ".tmp";
 
   struct sockaddr_un su;
-  bzero((void*) &su, sizeof(su));
+  memset((void*) &su, '\0', sizeof(su));
   su.sun_family = AF_UNIX;
 
   if (tempPath.length() >= sizeof(su.sun_path)) {

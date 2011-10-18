@@ -28,6 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
+#include "config.h"
+
 #include <string>
 #include <list>
 
@@ -78,7 +80,7 @@ static const char* usage =
 " hosts are a list of hostname[:port] values that are resolved\n"
 "      with gethostbyname() (default port: 14099)\n"
 "\n"
-"See also: http://localhost/docs/pluton/\n"
+"See also: " PACKAGE_URL "\n"
 "\n";
 
 
@@ -477,7 +479,7 @@ remoteHost::connect(int timeoutuS)
   }
 
   struct sockaddr_in saddr;
-  bzero((void*) &saddr, sizeof(saddr));
+  memset((void*) &saddr, '\0', sizeof(saddr));
   saddr.sin_family = AF_INET;
   memcpy((void*) &saddr.sin_addr, (void*) &_addr, sizeof(saddr.sin_addr));
   saddr.sin_port = htons(_port);

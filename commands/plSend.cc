@@ -33,6 +33,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // service. Good for testing/debugging a service.
 //////////////////////////////////////////////////////////////////////
 
+#include "config.h"
+
 #include <iostream>
 #include <iomanip>
 #include <sstream>
@@ -77,7 +79,7 @@ static const char* usage =
 "\tplSend -C echo.sleepMS=500 system.echo.0.raw ''\t\t# Sleep for 500ms\n"
 "\tcat listfolderrequest | plSend Mail.Folder..XML >results.data\n"
 "\n"
-"See also: http://localhost/docs/pluton/\n"
+"See also: " PACKAGE_URL "\n"
 "\n";
 
 

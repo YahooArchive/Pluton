@@ -173,7 +173,7 @@ class manager : public threadedObject {
   int		_processAdded;
   int		_requestsReported;
 
-  typedef hash_map<std::string, service*, hashString>	serviceMapType;
+  typedef P_STLMAP<std::string, service*, hashString>	serviceMapType;
   typedef serviceMapType::iterator		serviceMapIter;
   typedef serviceMapType::const_iterator	serviceMapConstIter;
 

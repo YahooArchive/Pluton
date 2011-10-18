@@ -28,6 +28,8 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
+#include "config.h"
+
 #include <iostream>
 #include "hashString.h"
 #include "hash_mapWrapper.h"
@@ -106,7 +108,7 @@ shmLookup::mapWriter(const char* path, const void* image, int imageSize)
 
   _baseAddress = static_cast<relativeHashMap*>(shmp);
   _mapSize = imageSize;
-  _baseAddress->_version = relativeHashMap::VERSION;
+  _baseAddress->_version = relativeHashMap::SHMVERSION;
   _baseAddress->_remapFlag = 'n';
 
   // New file is now ready for use by clients - make it visible in the file system

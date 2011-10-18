@@ -28,9 +28,17 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 */
 
+#include "config.h"
+
 #include <string>
 #include <sstream>
 
+// stdlib.h is needed for strtol() on Debian
+#ifdef HAVE_STDLIB_H
+#include <stdlib.h>
+#endif
+
+#include <string.h>
 #include <strings.h>
 
 #include "util.h"
@@ -47,7 +55,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 pluton::decodePacket::decodePacket(pluton::packetType setStartingType, pluton::requestImpl* R)
   : _startingType(setStartingType), _requestIn(R), _state(needStartingType)
 {
-  bzero((void*) _haveMap, sizeof(_haveMap));
+  memset((void*) _haveMap, '\0', sizeof(_haveMap));
 }
 
 pluton::decodePacket::~decodePacket()
@@ -82,7 +90,7 @@ void
 pluton::decodePacket::reset()
 {
   _state = needStartingType;
-  bzero((void*) _haveMap, sizeof(_haveMap));
+  memset((void*) _haveMap, '\0', sizeof(_haveMap));
 
   _requestID = 0;
   _requestIn = 0;

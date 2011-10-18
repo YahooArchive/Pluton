@@ -24,18 +24,30 @@ AC_SYS_LARGEFILE
 
 # Check for packages
 
-PKG_CHECK_MODULES(STATETHREADS, st >= 1.8)
 PKG_CHECK_MODULES(LIBCURL, libcurl >= 7.19.6)
+PKG_CHECK_MODULES(STATETHREADS, st >= 1.8)
 
-# Checks for header files.
+# Checks for C header files.
 
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h inttypes.h limits.h locale.h \
-	          netdb.h netinet/in.h stdint.h stdlib.h string.h strings.h \
-		  sys/param.h sys/socket.h sys/time.h unistd.h])
+AC_CHECK_HEADERS([arpa/inet.h \
+	          dirent.h fcntl.h stdlib.h \
+		  netinet/in.h \
+		  sys/param.h sys/mman.h sys/select.h sys/socket.h sys/stat.h \
+		  sys/time.h  sys/types.h sys/uio.h \
+		  unistd.h])
 
+# Checks for CPP header files.
+
+AC_LANG_PUSH([C++])
+AC_CHECK_HEADERS([unordered_map])
+AC_CHECK_HEADERS([tr1/unordered_map])
+AC_CHECK_HEADERS([hash_map])
+AC_CHECK_HEADERS([ext/hash_map])
+AC_LANG_POP([C++])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
+
 AC_TYPE_UID_T
 AC_C_INLINE
 AC_TYPE_INT32_T
@@ -52,8 +64,15 @@ AC_FUNC_FORK
 AC_FUNC_MALLOC
 AC_FUNC_MMAP
 AC_FUNC_REALLOC
-AC_CHECK_FUNCS([alarm bzero dup2 gethostbyname gettimeofday memmove memset munmap \
+AC_CHECK_FUNCS([alarm dup2 gethostbyname gettimeofday memmove memset munmap \
 		realpath select socket strcasecmp strchr strdup strerror strncasecmp strtol])
+
+AC_SEARCH_LIBS([recv], [nsl])
+AC_SEARCH_LIBS([socket], [socket])
+
+AC_CHECK_DECLS([optreset])
+
+AC_CHECK_MEMBERS([struct dirent.d_namlen], [], [], [[#include <dirent.h>]])
 
 AC_OUTPUT(Makefile replace/Makefile
           commonLibrary/Makefile clientServiceLibrary/Makefile
