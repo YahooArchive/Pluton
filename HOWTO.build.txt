@@ -35,11 +35,11 @@
 
    a) Pluton needs the state threads library (libst).
 
-   b) If you want to use the "curl" service you'll need to install the
+   b) To use the "curl" service you'll also need to install the
       curl library (libcurl). (currently the build insists on this
       package as "curl" is the archetypal service).
 
-   c) If you want to run the manager under damontools, then you need
+   c) If you want to run the manager under daemontools, then you need
       to install that package too.
 
 
@@ -103,3 +103,13 @@
    a) sudo apt-get install libst-dev
    b) sudo apt-get install libcurl3-dev
    c) apt-get install daemontools daemontools-run
+
+
+6. Solaris/Express (11)
+
+   You may need to install the C++ compiler, as root:
+       pkg install gcc-dev
+
+   a) Install from sources
+   b) pkg install curl-dev
+   c) Install from sources
