@@ -617,7 +617,17 @@ ac_header_list=
 ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
+BUILDPHPWRAPPER_FALSE
+BUILDPHPWRAPPER_TRUE
+BUILDPERLWRAPPER_FALSE
+BUILDPERLWRAPPER_TRUE
+BUILDJAVAWRAPPER_FALSE
+BUILDJAVAWRAPPER_TRUE
 LIBOBJS
+JAVAPROG
+PERLPROG
+PHPCONFIG
+SWIGPROG
 STATETHREADS_LIBS
 STATETHREADS_CFLAGS
 LIBCURL_LIBS
@@ -678,6 +688,7 @@ CPPFLAGS
 LDFLAGS
 CXXFLAGS
 CXX
+WARN_CFLAGS
 WARN_CXXFLAGS
 am__untar
 am__tar
@@ -3235,6 +3246,8 @@ am__tar='${AMTAR} chof - "$$tardir"'; am__untar='${AMTAR} xf -'
 
 
 WARN_CXXFLAGS="-Wall -pedantic -Wno-long-long"
+
+WARN_CFLAGS="-Wall -pedantic -Wno-long-long"
 
 
 # Checks for programs.
@@ -15874,7 +15887,174 @@ $as_echo "yes" >&6; }
 
 fi
 
-# Checks for C header files.
+# Check for commands needs to support wrappers
+
+# Extract the first word of "swig", so it can be a program name with args.
+set dummy swig; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_SWIGPROG+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$SWIGPROG"; then
+  ac_cv_prog_SWIGPROG="$SWIGPROG" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_prog_SWIGPROG="swig"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  test -z "$ac_cv_prog_SWIGPROG" && ac_cv_prog_SWIGPROG="MISSING"
+fi
+fi
+SWIGPROG=$ac_cv_prog_SWIGPROG
+if test -n "$SWIGPROG"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $SWIGPROG" >&5
+$as_echo "$SWIGPROG" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+if test $SWIGPROG = "MISSING"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Could not locate the swig command so NO wrappers can be built.
+
+If it exists, add it to your PATH otherwise install the swig package
+(or see http://www.swig.org for download details)" >&5
+$as_echo "$as_me: WARNING: Could not locate the swig command so NO wrappers can be built.
+
+If it exists, add it to your PATH otherwise install the swig package
+(or see http://www.swig.org for download details)" >&2;}
+
+fi
+
+# Extract the first word of "php-config", so it can be a program name with args.
+set dummy php-config; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_PHPCONFIG+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$PHPCONFIG"; then
+  ac_cv_prog_PHPCONFIG="$PHPCONFIG" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_prog_PHPCONFIG="php-config"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  test -z "$ac_cv_prog_PHPCONFIG" && ac_cv_prog_PHPCONFIG="MISSING"
+fi
+fi
+PHPCONFIG=$ac_cv_prog_PHPCONFIG
+if test -n "$PHPCONFIG"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $PHPCONFIG" >&5
+$as_echo "$PHPCONFIG" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+# Extract the first word of "perl", so it can be a program name with args.
+set dummy perl; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_PERLPROG+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$PERLPROG"; then
+  ac_cv_prog_PERLPROG="$PERLPROG" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_prog_PERLPROG="perl"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  test -z "$ac_cv_prog_PERLPROG" && ac_cv_prog_PERLPROG="MISSING"
+fi
+fi
+PERLPROG=$ac_cv_prog_PERLPROG
+if test -n "$PERLPROG"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $PERLPROG" >&5
+$as_echo "$PERLPROG" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+# Extract the first word of "java", so it can be a program name with args.
+set dummy java; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_JAVAPROG+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$JAVAPROG"; then
+  ac_cv_prog_JAVAPROG="$JAVAPROG" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_prog_JAVAPROG="java"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  test -z "$ac_cv_prog_JAVAPROG" && ac_cv_prog_JAVAPROG="MISSING"
+fi
+fi
+JAVAPROG=$ac_cv_prog_JAVAPROG
+if test -n "$JAVAPROG"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $JAVAPROG" >&5
+$as_echo "$JAVAPROG" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+
+# Checks for C header files
 
 for ac_header in arpa/inet.h \
 	          dirent.h fcntl.h stdlib.h \
@@ -16944,7 +17124,56 @@ _ACEOF
 fi
 
 
-ac_config_files="$ac_config_files Makefile replace/Makefile commonLibrary/Makefile clientServiceLibrary/Makefile manager/Makefile commands/Makefile services/Makefile testPrograms/Makefile wrappers/perl/Makefile wrappers/java/Makefile wrappers/php/Makefile"
+
+if test $SWIGPROG = "MISSING"; then
+   { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: No wrapper Makefiles will be generated as swig is missing" >&5
+$as_echo "$as_me: WARNING: No wrapper Makefiles will be generated as swig is missing" >&2;}
+else
+   if test $PHPCONFIG = "MISSING"; then
+      { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Could not locate the php-config command so the php wrapper will not be built" >&5
+$as_echo "$as_me: WARNING: Could not locate the php-config command so the php wrapper will not be built" >&2;}
+   fi
+
+   if test $PERLPROG = "MISSING"; then
+      { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Could not locate the perl command so the perl wrapper will not be built" >&5
+$as_echo "$as_me: WARNING: Could not locate the perl command so the perl wrapper will not be built" >&2;}
+   fi
+
+   if test $JAVAPROG = "MISSING"; then
+      { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Could not locate the java command so the java wrapper will not be built" >&5
+$as_echo "$as_me: WARNING: Could not locate the java command so the java wrapper will not be built" >&2;}
+   fi
+fi
+
+# Tell the toplevel Makefile which conditional subdirs are to be included
+
+ if test "$SWIGPROG" != MISSING -a "$JAVAPROG" != MISSING; then
+  BUILDJAVAWRAPPER_TRUE=
+  BUILDJAVAWRAPPER_FALSE='#'
+else
+  BUILDJAVAWRAPPER_TRUE='#'
+  BUILDJAVAWRAPPER_FALSE=
+fi
+
+ if test "$SWIGPROG" != MISSING -a "$PERLPROG" != MISSING; then
+  BUILDPERLWRAPPER_TRUE=
+  BUILDPERLWRAPPER_FALSE='#'
+else
+  BUILDPERLWRAPPER_TRUE='#'
+  BUILDPERLWRAPPER_FALSE=
+fi
+
+ if test "$SWIGPROG" != MISSING -a "$PHPCONFIG" != MISSING; then
+  BUILDPHPWRAPPER_TRUE=
+  BUILDPHPWRAPPER_FALSE='#'
+else
+  BUILDPHPWRAPPER_TRUE='#'
+  BUILDPHPWRAPPER_FALSE=
+fi
+
+
+ac_config_files="$ac_config_files Makefile replace/Makefile commonLibrary/Makefile clientServiceLibrary/Makefile manager/Makefile commands/Makefile services/Makefile wrappers/php/Makefile wrappers/perl/Makefile wrappers/java/Makefile testPrograms/Makefile"
+
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -17073,6 +17302,18 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${am__fastdepCC_TRUE}" && test -z "${am__fastdepCC_FALSE}"; then
   as_fn_error $? "conditional \"am__fastdepCC\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${BUILDJAVAWRAPPER_TRUE}" && test -z "${BUILDJAVAWRAPPER_FALSE}"; then
+  as_fn_error $? "conditional \"BUILDJAVAWRAPPER\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${BUILDPERLWRAPPER_TRUE}" && test -z "${BUILDPERLWRAPPER_FALSE}"; then
+  as_fn_error $? "conditional \"BUILDPERLWRAPPER\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${BUILDPHPWRAPPER_TRUE}" && test -z "${BUILDPHPWRAPPER_FALSE}"; then
+  as_fn_error $? "conditional \"BUILDPHPWRAPPER\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 
@@ -18067,10 +18308,10 @@ do
     "manager/Makefile") CONFIG_FILES="$CONFIG_FILES manager/Makefile" ;;
     "commands/Makefile") CONFIG_FILES="$CONFIG_FILES commands/Makefile" ;;
     "services/Makefile") CONFIG_FILES="$CONFIG_FILES services/Makefile" ;;
-    "testPrograms/Makefile") CONFIG_FILES="$CONFIG_FILES testPrograms/Makefile" ;;
+    "wrappers/php/Makefile") CONFIG_FILES="$CONFIG_FILES wrappers/php/Makefile" ;;
     "wrappers/perl/Makefile") CONFIG_FILES="$CONFIG_FILES wrappers/perl/Makefile" ;;
     "wrappers/java/Makefile") CONFIG_FILES="$CONFIG_FILES wrappers/java/Makefile" ;;
-    "wrappers/php/Makefile") CONFIG_FILES="$CONFIG_FILES wrappers/php/Makefile" ;;
+    "testPrograms/Makefile") CONFIG_FILES="$CONFIG_FILES testPrograms/Makefile" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac

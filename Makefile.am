@@ -1,5 +1,17 @@
-SUBDIRS = commonLibrary clientServiceLibrary manager commands services \
-	  testPrograms wrappers/perl wrappers/java wrappers/php
+if BUILDPHPWRAPPER
+   PHPWRAPPER = wrappers/php
+endif
+if BUILDPERLWRAPPER
+   PERLWRAPPER = wrappers/perl
+endif
+if BUILDJAVAWRAPPER
+   JAVAWRAPPER = wrappers/java
+endif
+
+
+SUBDIRS = commonLibrary clientServiceLibrary manager commands services testPrograms	\
+	$(PHPWRAPPER) $(PERLWRAPPER) $(JAVAWRAPPER)
+
 ACLOCAL_AMFLAGS = -I m4
 
 include_HEADERS = include/pluton/client.h include/pluton/clientEvent.h \

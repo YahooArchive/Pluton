@@ -10,6 +10,8 @@ AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 
 WARN_CXXFLAGS="-Wall -pedantic -Wno-long-long"
 AC_SUBST(WARN_CXXFLAGS)
+WARN_CFLAGS="-Wall -pedantic -Wno-long-long"
+AC_SUBST(WARN_CFLAGS)
 
 # Checks for programs.
 AC_PROG_CXX
@@ -27,7 +29,22 @@ AC_SYS_LARGEFILE
 PKG_CHECK_MODULES(LIBCURL, libcurl >= 7.19.6)
 PKG_CHECK_MODULES(STATETHREADS, st >= 1.8)
 
-# Checks for C header files.
+# Check for commands needs to support wrappers
+
+AC_CHECK_PROG(SWIGPROG, swig, swig, MISSING)
+if test $SWIGPROG = "MISSING"; then
+  AC_MSG_WARN([Could not locate the swig command so NO wrappers can be built.
+
+If it exists, add it to your PATH otherwise install the swig package
+(or see http://www.swig.org for download details)])
+
+fi
+
+AC_CHECK_PROG(PHPCONFIG, php-config, php-config, MISSING)
+AC_CHECK_PROG(PERLPROG, perl, perl, MISSING)
+AC_CHECK_PROG(JAVAPROG, java, java, MISSING)
+
+# Checks for C header files
 
 AC_CHECK_HEADERS([arpa/inet.h \
 	          dirent.h fcntl.h stdlib.h \
@@ -74,8 +91,33 @@ AC_CHECK_DECLS([optreset])
 
 AC_CHECK_MEMBERS([struct dirent.d_namlen], [], [], [[#include <dirent.h>]])
 
-AC_OUTPUT(Makefile replace/Makefile
+
+if test $SWIGPROG = "MISSING"; then
+   AC_MSG_WARN([No wrapper Makefiles will be generated as swig is missing])
+else
+   if test $PHPCONFIG = "MISSING"; then
+      AC_MSG_WARN([Could not locate the php-config command so the php wrapper will not be built])
+   fi
+
+   if test $PERLPROG = "MISSING"; then
+      AC_MSG_WARN([Could not locate the perl command so the perl wrapper will not be built])
+   fi
+
+   if test $JAVAPROG = "MISSING"; then
+      AC_MSG_WARN([Could not locate the java command so the java wrapper will not be built])
+   fi
+fi
+
+# Tell the toplevel Makefile which conditional subdirs are to be included
+
+AM_CONDITIONAL([BUILDJAVAWRAPPER], [test "$SWIGPROG" != MISSING -a "$JAVAPROG" != MISSING])
+AM_CONDITIONAL([BUILDPERLWRAPPER], [test "$SWIGPROG" != MISSING -a "$PERLPROG" != MISSING])
+AM_CONDITIONAL([BUILDPHPWRAPPER], [test "$SWIGPROG" != MISSING -a "$PHPCONFIG" != MISSING])
+
+AC_CONFIG_FILES(Makefile replace/Makefile
           commonLibrary/Makefile clientServiceLibrary/Makefile
  	  manager/Makefile commands/Makefile services/Makefile
- 	  testPrograms/Makefile
- 	  wrappers/perl/Makefile wrappers/java/Makefile wrappers/php/Makefile)
+	  wrappers/php/Makefile wrappers/perl/Makefile wrappers/java/Makefile
+ 	  testPrograms/Makefile)
+
+AC_OUTPUT

@@ -12,6 +12,9 @@ libpluton_la_LIBADD = $(top_builddir)/commonLibrary/libcommon.a
 libpluton_la_LDFLAGS = -version-info 0:0:0
 
 faultEnglish.cc.txt:	$(top_srcdir)/include/pluton/fault.h
-	$(SHELL) ./generate_FaultEnglish.sh <faultEnglish.cc.txt >$@
+	$(SHELL) ./generate_FaultEnglish.sh <$? >$@
 
 faultImpl.lo:	faultEnglish.cc.txt
+
+clean-local:
+	-rm -f faultEnglish.cc.txt
